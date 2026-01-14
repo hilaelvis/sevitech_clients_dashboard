@@ -1,6 +1,6 @@
 {
   "name": "airtable-client-dashboard",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Professional Node.js dashboard for managing Airtable client data",
   "main": "server.js",
   "scripts": {
@@ -22,7 +22,6 @@
     "chart.js": "^4.4.1",
     "connect-flash": "^0.1.1",
     "cookie-parser": "^1.4.6",
-    "csurf": "^1.2.2",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
@@ -42,6 +41,6 @@
     "nodemon": "^3.0.2"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   }
 }
