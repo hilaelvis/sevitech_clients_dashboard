@@ -1,0 +1,132 @@
+<%- include('partials/head') %>
+<%- include('partials/content-start') %>
+
+<!-- Header with search and filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+  <form method="GET" action="/clients" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <!-- Search -->
+    <div class="md:col-span-2">
+      <input
+        type="text"
+        name="search"
+        placeholder="Search by name, phone, or conversation ID..."
+        value="<%= filters.search || '' %>"
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+      >
+    </div>
+
+    <!-- Status filter -->
+    <div>
+      <select
+        name="status"
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+      >
+        <option value="">All Statuses</option>
+        <option value="New" <%= filters.status === 'New' ? 'selected' : '' %>>New</option>
+        <option value="Responded" <%= filters.status === 'Responded' ? 'selected' : '' %>>Responded</option>
+        <option value="Interested" <%= filters.status === 'Interested' ? 'selected' : '' %>>Interested</option>
+        <option value="Closed" <%= filters.status === 'Closed' ? 'selected' : '' %>>Closed</option>
+      </select>
+    </div>
+
+    <!-- Submit button -->
+    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+      <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition flex items-center justify-center">
+        <i class="fas fa-search mr-2"></i>Search
+      </button>
+      <a href="/clients/export/csv" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center justify-center space-x-2" title="Export to CSV">
+        <i class="fas fa-download"></i>
+        <span>Export CSV</span>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Clients table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full">
+      <thead class="bg-gray-50 dark:bg-gray-700">
+        <tr>
+          <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
+          <th class="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Phone</th>
+          <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+          <th class="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Conversation ID</th>
+          <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
+          <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+        <% if (clients.length === 0) { %>
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+              <i class="fas fa-inbox text-4xl mb-4"></i>
+              <p>No clients found</p>
+            </td>
+          </tr>
+        <% } else { %>
+          <% clients.forEach(function(client) { %>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <td class="px-3 sm:px-6 py-4">
+                <div class="flex items-center">
+                  <div class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-2 sm:mr-3">
+                    <span class="text-sm sm:text-base text-blue-600 dark:text-blue-300 font-semibold"><%= client.name ? client.name.charAt(0).toUpperCase() : '?' %></span>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white"><%= client.name || 'N/A' %></div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 sm:hidden"><%= client.phone_number || 'N/A' %></div>
+                  </div>
+                </div>
+              </td>
+              <td class="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"><%= client.phone_number || 'N/A' %></td>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                <span class="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full <%= getStatusColor(client.status) %>">
+                  <%= client.status %>
+                </span>
+              </td>
+              <td class="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300 font-mono text-xs"><%= client.conversation_id || 'N/A' %></td>
+              <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <%= formatRelativeTime(client.created_time) %>
+              </td>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <a href="/clients/<%= client.id %>" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                  <i class="fas fa-eye"></i><span class="hidden sm:inline ml-1">View</span>
+                </a>
+              </td>
+            </tr>
+          <% }) %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <% if (pagination.totalPages > 1) { %>
+    <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="text-xs sm:text-sm text-gray-700 dark:text-gray-300 text-center sm:text-left">
+          <span class="font-medium"><%= (pagination.currentPage - 1) * 20 + 1 %></span> -
+          <span class="font-medium"><%= Math.min(pagination.currentPage * 20, pagination.totalItems) %></span> of
+          <span class="font-medium"><%= pagination.totalItems %></span>
+        </div>
+        <div class="flex space-x-2">
+          <% if (pagination.hasPrev) { %>
+            <a href="?page=<%= pagination.currentPage - 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %>"
+               class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+              <i class="fas fa-chevron-left sm:mr-2"></i><span class="hidden sm:inline">Previous</span>
+            </a>
+          <% } %>
+          <% if (pagination.hasNext) { %>
+            <a href="?page=<%= pagination.currentPage + 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %>"
+               class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+              <span class="hidden sm:inline">Next</span><i class="fas fa-chevron-right sm:ml-2"></i>
+            </a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/content-end') %>
+<%- include('partials/footer') %>

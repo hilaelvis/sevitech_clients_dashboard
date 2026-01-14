@@ -1,0 +1,191 @@
+<%- include('partials/head') %>
+<%- include('partials/content-start') %>
+
+<!-- Header with search and filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+  <form method="GET" action="/messages" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+    <!-- Search -->
+    <div class="md:col-span-2">
+      <input
+        type="text"
+        name="search"
+        placeholder="Search in messages..."
+        value="<%= filters.search || '' %>"
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+      >
+    </div>
+
+    <!-- Sender filter -->
+    <div>
+      <select
+        name="sender"
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+      >
+        <option value="">All Senders</option>
+        <option value="Client" <%= filters.sender === 'Client' ? 'selected' : '' %>>Client</option>
+        <option value="Agent" <%= filters.sender === 'Agent' ? 'selected' : '' %>>Agent</option>
+      </select>
+    </div>
+
+    <!-- Platform filter -->
+    <div>
+      <select
+        name="platform"
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+      >
+        <option value="">All Platforms</option>
+        <option value="whatsapp" <%= filters.platform === 'whatsapp' ? 'selected' : '' %>>WhatsApp</option>
+        <option value="sms" <%= filters.platform === 'sms' ? 'selected' : '' %>>SMS</option>
+        <option value="messenger" <%= filters.platform === 'messenger' ? 'selected' : '' %>>Messenger</option>
+      </select>
+    </div>
+
+    <!-- Submit button -->
+    <div class="flex space-x-2">
+      <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+        <i class="fas fa-search mr-2"></i>Search
+      </button>
+      <a href="/messages/export/csv?<%= new URLSearchParams(filters).toString() %>" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center space-x-2" title="Export to CSV">
+        <i class="fas fa-download"></i>
+        <span class="hidden sm:inline">Export CSV</span>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Conversations list -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+  <div class="mb-4">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-white">All Conversations</h2>
+    <p class="text-sm text-gray-600 dark:text-gray-400">Click on any conversation to view the full chat</p>
+  </div>
+
+  <div class="space-y-2">
+    <% if (conversations.length === 0) { %>
+      <div class="text-center py-12">
+        <i class="fas fa-inbox text-4xl text-gray-400 dark:text-gray-500 mb-4"></i>
+        <p class="text-gray-500 dark:text-gray-400">No conversations found</p>
+      </div>
+    <% } else { %>
+      <% conversations.forEach(function(conversation) { %>
+        <% if (conversation.clientId) { %>
+          <a href="/clients/<%= conversation.clientId %>" class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition border-l-4 <%= conversation.clientStatus === 'New' ? 'border-blue-500' : conversation.clientStatus === 'Responded' ? 'border-yellow-500' : conversation.clientStatus === 'Interested' ? 'border-green-500' : 'border-gray-500' %>">
+            <div class="flex items-start space-x-4">
+              <!-- Avatar -->
+              <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <span class="text-white font-semibold text-xl"><%= conversation.clientName ? conversation.clientName.charAt(0).toUpperCase() : '?' %></span>
+              </div>
+
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1">
+                  <h3 class="text-base font-semibold text-gray-800 dark:text-white">
+                    <%= conversation.clientName %>
+                  </h3>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">
+                    <%= formatRelativeTime(conversation.lastMessageTime) %>
+                  </span>
+                </div>
+
+                <div class="flex items-center space-x-2 mb-2">
+                  <p class="text-xs text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-phone mr-1"></i><%= conversation.clientPhone %>
+                  </p>
+                  <span class="text-xs text-gray-400">•</span>
+                  <span class="text-xs text-gray-600 dark:text-gray-400">
+                    <%- getPlatformIcon(conversation.platform) %> <%= conversation.platform %>
+                  </span>
+                </div>
+
+                <div class="flex items-center space-x-2 mb-2">
+                  <span class="px-2 py-0.5 text-xs font-semibold rounded-full <%= conversation.clientStatus === 'New' ? 'bg-blue-100 text-blue-800' : conversation.clientStatus === 'Responded' ? 'bg-yellow-100 text-yellow-800' : conversation.clientStatus === 'Interested' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+                    <%= conversation.clientStatus %>
+                  </span>
+                  <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
+                    <i class="fas fa-comments mr-1"></i><%= conversation.messageCount %> messages
+                  </span>
+                </div>
+
+                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
+                  <i class="fas fa-comment-dots mr-1"></i>
+                  <%= conversation.lastMessage %>
+                </p>
+              </div>
+
+              <!-- Chevron -->
+              <div class="flex-shrink-0 self-center">
+                <i class="fas fa-chevron-right text-gray-400"></i>
+              </div>
+            </div>
+          </a>
+        <% } else { %>
+          <!-- Conversation without client link -->
+          <div class="block p-4 rounded-lg border-l-4 border-gray-400 bg-gray-50 dark:bg-gray-700">
+            <div class="flex items-start space-x-4">
+              <div class="flex-shrink-0 w-14 h-14 bg-gray-400 rounded-full flex items-center justify-center">
+                <span class="text-white font-semibold text-xl">?</span>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1">
+                  <h3 class="text-base font-semibold text-gray-600 dark:text-gray-400">
+                    Unknown Client
+                  </h3>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">
+                    <%= formatRelativeTime(conversation.lastMessageTime) %>
+                  </span>
+                </div>
+
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  Conversation ID: <%= conversation.conversation_id %>
+                </p>
+
+                <div class="flex items-center space-x-2 mb-2">
+                  <span class="text-xs text-gray-600 dark:text-gray-400">
+                    <%- getPlatformIcon(conversation.platform) %> <%= conversation.platform %>
+                  </span>
+                  <span class="px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-full">
+                    <i class="fas fa-comments mr-1"></i><%= conversation.messageCount %> messages
+                  </span>
+                </div>
+
+                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
+                  <i class="fas fa-comment-dots mr-1"></i>
+                  <%= conversation.lastMessage %>
+                </p>
+              </div>
+            </div>
+          </div>
+        <% } %>
+      <% }) %>
+    <% } %>
+  </div>
+
+  <!-- Pagination -->
+  <% if (pagination.totalPages > 1) { %>
+    <div class="mt-6 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4">
+      <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium"><%= (pagination.currentPage - 1) * 20 + 1 %></span> to
+        <span class="font-medium"><%= Math.min(pagination.currentPage * 20, pagination.totalItems) %></span> of
+        <span class="font-medium"><%= pagination.totalItems %></span> conversations
+      </div>
+      <div class="flex space-x-2">
+        <% if (pagination.hasPrev) { %>
+          <a href="?page=<%= pagination.currentPage - 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.sender ? '&sender=' + filters.sender : '' %><%= filters.platform ? '&platform=' + filters.platform : '' %>"
+             class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+            <i class="fas fa-chevron-left mr-2"></i>Previous
+          </a>
+        <% } %>
+        <% if (pagination.hasNext) { %>
+          <a href="?page=<%= pagination.currentPage + 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.sender ? '&sender=' + filters.sender : '' %><%= filters.platform ? '&platform=' + filters.platform : '' %>"
+             class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+            Next<i class="fas fa-chevron-right ml-2"></i>
+          </a>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/content-end') %>
+<%- include('partials/footer') %>

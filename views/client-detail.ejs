@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - Sevitech Dashboard</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3b82f6',
+            secondary: '#6366f1',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transition-all duration-300 ease-in-out">
+      <div class="p-6">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Sevitech</h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Client Dashboard</p>
+        </div>
+      </div>
+
+      <nav class="px-4 pb-4">
+        <ul class="space-y-1">
+          <li>
+            <a href="/dashboard" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+              <i class="fas fa-home w-5"></i>
+              <span class="ml-3">Dashboard</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="/clients" class="flex items-center px-4 py-3 bg-primary text-white hover:bg-primary rounded-lg transition">
+              <i class="fas fa-users w-5"></i>
+              <span class="ml-3">Clients</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="/messages" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+              <i class="fas fa-comments w-5"></i>
+              <span class="ml-3">Messages</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="/analytics" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+              <i class="fas fa-chart-bar w-5"></i>
+              <span class="ml-3">Analytics</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="/settings" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+              <i class="fas fa-cog w-5"></i>
+              <span class="ml-3">Settings</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <a href="/auth/logout" class="flex items-center px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+            <i class="fas fa-sign-out-alt w-5"></i>
+            <span class="ml-3">Logout</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Header -->
+      <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <!-- Sidebar toggle button -->
+            <button id="sidebar-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+              <i class="fas fa-bars text-xl"></i>
+            </button>
+
+            <div>
+              <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white"><%= title %></h2>
+              <% if (typeof user !== 'undefined' && user) { %>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 hidden sm:block">Welcome back, <%= user.username %></p>
+              <% } %>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-4">
+            <!-- Dark mode toggle -->
+            <button id="theme-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition" title="Toggle theme">
+              <i class="fas fa-moon dark:hidden text-xl"></i>
+              <i class="fas fa-sun hidden dark:inline text-xl"></i>
+            </button>
+
+            <!-- Refresh button -->
+            <button id="refresh-btn" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition" title="Refresh data">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+
+            <!-- User menu -->
+            <% if (typeof user !== 'undefined' && user) { %>
+              <div class="flex items-center space-x-3">
+                <div class="text-right">
+                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300"><%= user.username %></p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+                </div>
+                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                  <span class="text-white font-semibold"><%= user.username.charAt(0).toUpperCase() %></span>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main content area -->
+      <main class="flex-1 overflow-y-auto p-6">
+        <!-- Flash messages -->
+        <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+          <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline"><%= success_msg %></span>
+          </div>
+        <% } %>
+
+        <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+          <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline"><%= error_msg %></span>
+          </div>
+        <% } %>
+
+        <% if (typeof error !== 'undefined' && error && error.length > 0) { %>
+          <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline"><%= error %></span>
+          </div>
+        <% } %>
+
+        <!-- Back button -->
+        <div class="mb-6">
+          <a href="/clients" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Clients
+          </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Client Info Card -->
+          <div class="lg:col-span-1">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <!-- View Mode -->
+              <div id="view-mode">
+                <div class="text-center mb-6">
+                  <div class="w-20 h-20 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-3xl text-blue-600 dark:text-blue-300 font-bold" id="avatar-initial"><%= client.name ? client.name.charAt(0).toUpperCase() : '?' %></span>
+                  </div>
+                  <h2 class="text-2xl font-bold text-gray-800 dark:text-white" id="display-name"><%= client.name || 'N/A' %></h2>
+                  <p class="text-gray-500 dark:text-gray-400" id="display-phone"><%= client.phone_number || 'N/A' %></p>
+                  <button onclick="toggleEditMode()" class="mt-3 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                    <i class="fas fa-edit mr-1"></i>Edit Details
+                  </button>
+                </div>
+              </div>
+
+              <!-- Edit Mode -->
+              <div id="edit-mode" style="display: none;">
+                <form method="POST" action="/clients/<%= client.id %>/update" class="mb-6">
+                  <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span class="text-3xl text-blue-600 dark:text-blue-300 font-bold"><%= client.name ? client.name.charAt(0).toUpperCase() : '?' %></span>
+                    </div>
+                  </div>
+
+                  <div class="space-y-4">
+                    <div>
+                      <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value="<%= client.name || '' %>"
+                        class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        required
+                      >
+                    </div>
+
+                    <div>
+                      <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Phone Number</label>
+                      <input
+                        type="text"
+                        name="phone_number"
+                        value="<%= client.phone_number || '' %>"
+                        class="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        required
+                      >
+                    </div>
+
+                    <div class="flex space-x-2">
+                      <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-save mr-2"></i>Save
+                      </button>
+                      <button type="button" onclick="toggleEditMode()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Status</label>
+                  <form method="POST" action="/clients/<%= client.id %>/status" class="mt-2">
+                    <select
+                      name="status"
+                      onchange="this.form.submit()"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="New" <%= client.status === 'New' ? 'selected' : '' %>>New</option>
+                      <option value="Responded" <%= client.status === 'Responded' ? 'selected' : '' %>>Responded</option>
+                      <option value="Interested" <%= client.status === 'Interested' ? 'selected' : '' %>>Interested</option>
+                      <option value="Closed" <%= client.status === 'Closed' ? 'selected' : '' %>>Closed</option>
+                    </select>
+                  </form>
+                </div>
+
+                <div>
+                  <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Conversation ID</label>
+                  <p class="mt-1 text-sm text-gray-800 dark:text-white font-mono"><%= client.conversation_id || 'N/A' %></p>
+                </div>
+
+                <div>
+                  <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Created</label>
+                  <p class="mt-1 text-sm text-gray-800 dark:text-white"><%= formatDate(client.created_time) %></p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400"><%= formatRelativeTime(client.created_time) %></p>
+                </div>
+
+                <div>
+                  <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Messages</label>
+                  <p class="mt-1 text-sm text-gray-800 dark:text-white"><%= messages.length %></p>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="/clients/<%= client.id %>/export/pdf" class="block w-full bg-blue-500 hover:bg-blue-600 text-white text-center px-4 py-2 rounded-lg transition">
+                  <i class="fas fa-file-pdf mr-2"></i>Export as PDF
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conversation History -->
+          <div class="lg:col-span-2">
+            <div class="rounded-lg shadow overflow-hidden">
+              <!-- WhatsApp Header -->
+              <div class="bg-[#008069] text-white px-6 py-4 flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span class="text-lg text-gray-700 font-semibold"><%= client.name ? client.name.charAt(0).toUpperCase() : '?' %></span>
+                </div>
+                <div>
+                  <h3 class="font-semibold"><%= client.name || 'Client' %></h3>
+                  <p class="text-xs text-gray-100"><%= client.phone_number || 'No phone' %></p>
+                </div>
+              </div>
+
+              <!-- WhatsApp Chat Background -->
+              <div class="bg-[#efeae2] p-4 max-h-[600px] overflow-y-auto" style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJ3aGF0c2FwcC1iZyIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiPgogICAgICA8cGF0aCBkPSJNMCwwIEwzMDAsMzAwIE0zMDAsMCBMMCwzMDAiIHN0cm9rZT0icmdiYSgyMjAsMjE4LDIxMCwwLjEpIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDwvcGF0dGVybj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCN3aGF0c2FwcC1iZykiLz4KPC9zdmc+'); background-size: 300px 300px;">
+                <% if (messages.length === 0) { %>
+                  <div class="text-center py-12">
+                    <i class="fas fa-comments text-6xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 dark:text-gray-400">No messages yet</p>
+                  </div>
+                <% } else { %>
+                  <div class="space-y-1">
+                    <% messages.forEach(function(message) { %>
+                      <div class="flex <%= message.sender === 'Client' ? 'justify-start' : 'justify-end' %>">
+                        <div class="relative inline-block max-w-[85%] sm:max-w-[75%] <%= message.sender === 'Client' ? 'bg-white' : 'bg-[#d9fdd3]' %> rounded-md shadow-sm px-2 py-1" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                          <!-- Message Tail -->
+                          <div class="absolute top-0 <%= message.sender === 'Client' ? '-left-1.5' : '-right-1.5' %> w-0 h-0" style="border-style: solid; <%= message.sender === 'Client' ? 'border-width: 0 6px 8px 0; border-color: transparent white transparent transparent;' : 'border-width: 0 0 8px 6px; border-color: transparent transparent #d9fdd3 transparent;' %>"></div>
+
+                          <!-- Message text with timestamp inline -->
+                          <p class="text-[#111b21] text-sm leading-snug whitespace-pre-wrap break-words inline" style="word-break: break-word;"><%= message.message_text %></p>
+                          <span class="text-[10px] text-gray-500 ml-2 inline-block align-bottom" style="margin-bottom: 1px;">
+                            <%= new Date(message.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) %>
+                            <% if (message.sender === 'Agent') { %>
+                              <i class="fas fa-check-double text-blue-500 ml-1"></i>
+                            <% } %>
+                          </span>
+                        </div>
+                      </div>
+                    <% }) %>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast notification container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+  <script>
+    function toggleEditMode() {
+      const viewMode = document.getElementById('view-mode');
+      const editMode = document.getElementById('edit-mode');
+
+      if (viewMode.style.display === 'none') {
+        viewMode.style.display = 'block';
+        editMode.style.display = 'none';
+      } else {
+        viewMode.style.display = 'none';
+        editMode.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

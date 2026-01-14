@@ -1,0 +1,55 @@
+<!-- Sidebar -->
+<aside id="sidebar" class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transition-all duration-300 ease-in-out">
+  <div class="p-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Sevitech</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Client Dashboard</p>
+    </div>
+  </div>
+
+  <nav class="px-4 pb-4">
+    <ul class="space-y-1">
+      <li>
+        <a href="/dashboard" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath === '/dashboard' ? 'bg-primary text-white hover:bg-primary' : '' %>">
+          <i class="fas fa-home w-5"></i>
+          <span class="ml-3">Dashboard</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="/clients" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/clients') ? 'bg-primary text-white hover:bg-primary' : '' %>">
+          <i class="fas fa-users w-5"></i>
+          <span class="ml-3">Clients</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="/messages" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/messages') ? 'bg-primary text-white hover:bg-primary' : '' %>">
+          <i class="fas fa-comments w-5"></i>
+          <span class="ml-3">Messages</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="/analytics" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/analytics') ? 'bg-primary text-white hover:bg-primary' : '' %>">
+          <i class="fas fa-chart-bar w-5"></i>
+          <span class="ml-3">Analytics</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="/settings" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/settings') ? 'bg-primary text-white hover:bg-primary' : '' %>">
+          <i class="fas fa-cog w-5"></i>
+          <span class="ml-3">Settings</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <a href="/auth/logout" class="flex items-center px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+        <i class="fas fa-sign-out-alt w-5"></i>
+        <span class="ml-3">Logout</span>
+      </a>
+    </div>
+  </nav>
+</aside>

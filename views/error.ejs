@@ -1,0 +1,23 @@
+<div class="flex items-center justify-center min-h-[60vh]">
+  <div class="text-center">
+    <i class="fas fa-exclamation-triangle text-6xl text-yellow-500 mb-6"></i>
+    <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-4"><%= title || 'Error' %></h1>
+    <p class="text-lg text-gray-600 dark:text-gray-400 mb-8"><%= message || 'An error occurred' %></p>
+
+    <% if (error && error.stack && process.env.NODE_ENV === 'development') { %>
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6 text-left max-w-2xl mx-auto">
+        <h3 class="text-sm font-semibold text-red-800 dark:text-red-300 mb-2">Debug Information:</h3>
+        <pre class="text-xs text-red-700 dark:text-red-400 overflow-x-auto"><%= error.stack %></pre>
+      </div>
+    <% } %>
+
+    <div class="flex space-x-4 justify-center">
+      <a href="/dashboard" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition">
+        <i class="fas fa-home mr-2"></i>Go to Dashboard
+      </a>
+      <button onclick="history.back()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition">
+        <i class="fas fa-arrow-left mr-2"></i>Go Back
+      </button>
+    </div>
+  </div>
+</div>
