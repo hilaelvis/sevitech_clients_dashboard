@@ -129,4 +129,51 @@
 </div>
 
 <%- include('partials/content-end') %>
+
+<script>
+  // Remember last filter preferences
+  (function() {
+    const form = document.querySelector('form[action="/clients"]');
+    const statusSelect = document.querySelector('select[name="status"]');
+    const searchInput = document.querySelector('input[name="search"]');
+
+    // Save filters to localStorage when form is submitted
+    form.addEventListener('submit', function() {
+      if (statusSelect.value) {
+        localStorage.setItem('clientsLastStatus', statusSelect.value);
+      } else {
+        localStorage.removeItem('clientsLastStatus');
+      }
+
+      if (searchInput.value) {
+        localStorage.setItem('clientsLastSearch', searchInput.value);
+      } else {
+        localStorage.removeItem('clientsLastSearch');
+      }
+    });
+
+    // Apply saved filters on page load if no filters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasStatusInUrl = urlParams.has('status');
+    const hasSearchInUrl = urlParams.has('search');
+
+    // Only apply saved filters if coming to page without any filters
+    if (!hasStatusInUrl && !hasSearchInUrl && urlParams.get('page') === null) {
+      const savedStatus = localStorage.getItem('clientsLastStatus');
+      const savedSearch = localStorage.getItem('clientsLastSearch');
+
+      if (savedStatus || savedSearch) {
+        const newUrl = new URL(window.location.href);
+        if (savedStatus) {
+          newUrl.searchParams.set('status', savedStatus);
+        }
+        if (savedSearch) {
+          newUrl.searchParams.set('search', savedSearch);
+        }
+        window.location.href = newUrl.toString();
+      }
+    }
+  })();
+</script>
+
 <%- include('partials/footer') %>
