@@ -3,7 +3,7 @@
 
 <!-- Header with search and filters -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-  <form method="GET" action="/clients" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <form method="GET" action="/clients" class="grid grid-cols-1 md:grid-cols-5 gap-4">
     <!-- Search -->
     <div class="md:col-span-2">
       <input
@@ -26,6 +26,18 @@
         <option value="Responded" <%= filters.status === 'Responded' ? 'selected' : '' %>>Responded</option>
         <option value="Interested" <%= filters.status === 'Interested' ? 'selected' : '' %>>Interested</option>
         <option value="Closed" <%= filters.status === 'Closed' ? 'selected' : '' %>>Closed</option>
+      </select>
+    </div>
+
+    <!-- Phone Type filter -->
+    <div>
+      <select
+        name="phone_type"
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+      >
+        <option value="">All Phone Types</option>
+        <option value="Mobile" <%= filters.phone_type === 'Mobile' ? 'selected' : '' %>>Mobile</option>
+        <option value="Landline" <%= filters.phone_type === 'Landline' ? 'selected' : '' %>>Landline</option>
       </select>
     </div>
 
@@ -122,13 +134,13 @@
         </div>
         <div class="flex space-x-2">
           <% if (pagination.hasPrev) { %>
-            <a href="?page=<%= pagination.currentPage - 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %>"
+            <a href="?page=<%= pagination.currentPage - 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.phone_type ? '&phone_type=' + filters.phone_type : '' %>"
                class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
               <i class="fas fa-chevron-left sm:mr-2"></i><span class="hidden sm:inline">Previous</span>
             </a>
           <% } %>
           <% if (pagination.hasNext) { %>
-            <a href="?page=<%= pagination.currentPage + 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %>"
+            <a href="?page=<%= pagination.currentPage + 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.phone_type ? '&phone_type=' + filters.phone_type : '' %>"
                class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
               <span class="hidden sm:inline">Next</span><i class="fas fa-chevron-right sm:ml-2"></i>
             </a>
@@ -146,6 +158,7 @@
   (function() {
     const form = document.querySelector('form[action="/clients"]');
     const statusSelect = document.querySelector('select[name="status"]');
+    const phoneTypeSelect = document.querySelector('select[name="phone_type"]');
     const searchInput = document.querySelector('input[name="search"]');
 
     // Save filters to localStorage when form is submitted
@@ -154,6 +167,12 @@
         localStorage.setItem('clientsLastStatus', statusSelect.value);
       } else {
         localStorage.removeItem('clientsLastStatus');
+      }
+
+      if (phoneTypeSelect.value) {
+        localStorage.setItem('clientsLastPhoneType', phoneTypeSelect.value);
+      } else {
+        localStorage.removeItem('clientsLastPhoneType');
       }
 
       if (searchInput.value) {
@@ -166,17 +185,22 @@
     // Apply saved filters on page load if no filters in URL
     const urlParams = new URLSearchParams(window.location.search);
     const hasStatusInUrl = urlParams.has('status');
+    const hasPhoneTypeInUrl = urlParams.has('phone_type');
     const hasSearchInUrl = urlParams.has('search');
 
     // Only apply saved filters if coming to page without any filters
-    if (!hasStatusInUrl && !hasSearchInUrl && urlParams.get('page') === null) {
+    if (!hasStatusInUrl && !hasPhoneTypeInUrl && !hasSearchInUrl && urlParams.get('page') === null) {
       const savedStatus = localStorage.getItem('clientsLastStatus');
+      const savedPhoneType = localStorage.getItem('clientsLastPhoneType');
       const savedSearch = localStorage.getItem('clientsLastSearch');
 
-      if (savedStatus || savedSearch) {
+      if (savedStatus || savedPhoneType || savedSearch) {
         const newUrl = new URL(window.location.href);
         if (savedStatus) {
           newUrl.searchParams.set('status', savedStatus);
+        }
+        if (savedPhoneType) {
+          newUrl.searchParams.set('phone_type', savedPhoneType);
         }
         if (savedSearch) {
           newUrl.searchParams.set('search', savedSearch);

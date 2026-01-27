@@ -6,30 +6,39 @@ class AirtableService {
   async getAllClients(filters = {}) {
     try {
       const clients = [];
-      let query = base(TABLES.CLIENTS).select({
-        view: 'Grid view',
-        sort: [{ field: 'created_time', direction: 'desc' }]
-      });
 
-      // Apply filters
+      // Build filter formula by combining all filters
+      const filterConditions = [];
+
       if (filters.status) {
-        query = base(TABLES.CLIENTS).select({
-          filterByFormula: `{Status} = '${filters.status}'`,
-          sort: [{ field: 'created_time', direction: 'desc' }]
-        });
+        filterConditions.push(`{Status} = '${filters.status}'`);
+      }
+
+      if (filters.phone_type) {
+        filterConditions.push(`{phone_type} = '${filters.phone_type}'`);
       }
 
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        query = base(TABLES.CLIENTS).select({
-          filterByFormula: `OR(
-            SEARCH(LOWER('${searchTerm}'), LOWER({name})),
-            SEARCH('${searchTerm}', {phone_number}),
-            SEARCH('${searchTerm}', {conversation_id})
-          )`,
-          sort: [{ field: 'created_time', direction: 'desc' }]
-        });
+        filterConditions.push(`OR(
+          SEARCH(LOWER('${searchTerm}'), LOWER({name})),
+          SEARCH('${searchTerm}', {phone_number}),
+          SEARCH('${searchTerm}', {conversation_id})
+        )`);
       }
+
+      // Build query with combined filters
+      const queryOptions = {
+        sort: [{ field: 'created_time', direction: 'desc' }]
+      };
+
+      if (filterConditions.length > 0) {
+        queryOptions.filterByFormula = filterConditions.length === 1
+          ? filterConditions[0]
+          : `AND(${filterConditions.join(', ')})`;
+      }
+
+      const query = base(TABLES.CLIENTS).select(queryOptions);
 
       await query.eachPage((records, fetchNextPage) => {
         records.forEach(record => {

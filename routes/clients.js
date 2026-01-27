@@ -29,11 +29,12 @@ router.get('/export/csv', ensureAuthenticated, async (req, res, next) => {
 // Clients list page
 router.get('/', ensureAuthenticated, async (req, res, next) => {
   try {
-    const { search, status, page = 1 } = req.query;
+    const { search, status, phone_type, page = 1 } = req.query;
 
     const filters = {};
     if (search) filters.search = search;
     if (status) filters.status = status;
+    if (phone_type) filters.phone_type = phone_type;
 
     const clients = await airtableService.getAllClients(filters);
     const paginatedClients = paginate(clients, parseInt(page), 20);
@@ -48,7 +49,7 @@ router.get('/', ensureAuthenticated, async (req, res, next) => {
         hasNext: paginatedClients.hasNext,
         hasPrev: paginatedClients.hasPrev
       },
-      filters: { search, status },
+      filters: { search, status, phone_type },
       formatDate,
       formatRelativeTime,
       getStatusColor
