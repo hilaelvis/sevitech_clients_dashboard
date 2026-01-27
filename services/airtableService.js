@@ -39,6 +39,7 @@ class AirtableService {
             phone_number: record.get('phone_number'),
             name: record.get('name'),
             status: record.get('Status'),
+            phone_type: record.get('phone_type'),
             conversation_id: record.get('conversation_id'),
             created_time: record.get('created_time'),
             messages: record.get('Messages') || []
@@ -64,6 +65,7 @@ class AirtableService {
         phone_number: record.get('phone_number'),
         name: record.get('name'),
         status: record.get('Status'),
+        phone_type: record.get('phone_type'),
         conversation_id: record.get('conversation_id'),
         created_time: record.get('created_time'),
         messages: record.get('Messages') || []
@@ -93,6 +95,7 @@ class AirtableService {
         phone_number: record.get('phone_number'),
         name: record.get('name'),
         status: record.get('Status'),
+        phone_type: record.get('phone_type'),
         conversation_id: record.get('conversation_id'),
         created_time: record.get('created_time'),
         messages: record.get('Messages') || []
