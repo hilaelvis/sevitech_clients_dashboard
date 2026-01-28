@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const passport = require('passport');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -66,16 +67,21 @@ if (process.env.NODE_ENV !== 'production') {
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session configuration - no auto logout
+// Session configuration - persistent sessions with file store
 app.use(session({
+  store: new FileStore({
+    path: path.join(__dirname, 'sessions'),
+    ttl: 365 * 24 * 60 * 60, // 1 year in seconds
+    retries: 0
+  }),
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   rolling: true, // Reset session on each request
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for local development
     httpOnly: true,
-    maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year - effectively no timeout
+    maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year
   }
 }));
 

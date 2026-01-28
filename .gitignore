@@ -57,3 +57,6 @@ uploads/*
 # Generated PDFs
 exports/*
 !exports/.gitkeep
+
+# Session files
+sessions/
