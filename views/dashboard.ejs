@@ -1,6 +1,13 @@
 <%- include('partials/head') %>
 <%- include('partials/content-start') %>
 
+<!-- Auto-refresh indicator -->
+<div class="flex justify-end mb-4">
+  <span id="refresh-indicator" class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+    <i class="fas fa-sync-alt mr-1"></i>Auto-refresh in 60s
+  </span>
+</div>
+
 <!-- Stats cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
   <!-- Total Clients -->
@@ -181,21 +188,18 @@
     }
   });
 
-  // Auto-refresh stats every 30 seconds
-  setInterval(async () => {
-    try {
-      const response = await fetch('/dashboard/api/stats');
-      const stats = await response.json();
-
-      // Update stats on page
-      document.querySelectorAll('.text-3xl')[0].textContent = stats.totalClients;
-      document.querySelectorAll('.text-3xl')[1].textContent = stats.newClientsToday;
-      document.querySelectorAll('.text-3xl')[2].textContent = stats.activeConversations;
-      document.querySelectorAll('.text-3xl')[3].textContent = stats.messagesToday;
-    } catch (error) {
-      console.error('Failed to refresh stats:', error);
+  // Auto-refresh page every 60 seconds for monitoring
+  let refreshCountdown = 60;
+  const refreshInterval = setInterval(() => {
+    refreshCountdown--;
+    const indicator = document.getElementById('refresh-indicator');
+    if (indicator) {
+      indicator.textContent = `Auto-refresh in ${refreshCountdown}s`;
     }
-  }, 30000);
+    if (refreshCountdown <= 0) {
+      location.reload();
+    }
+  }, 1000);
 
   // Analytics charts
   const analytics = <%- JSON.stringify(analytics) %>;

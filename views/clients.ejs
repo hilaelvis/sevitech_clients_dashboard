@@ -1,6 +1,13 @@
 <%- include('partials/head') %>
 <%- include('partials/content-start') %>
 
+<!-- Auto-refresh indicator -->
+<div class="flex justify-end mb-4">
+  <span id="refresh-indicator" class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+    <i class="fas fa-sync-alt mr-1"></i>Auto-refresh in 60s
+  </span>
+</div>
+
 <!-- Header with search and filters -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
   <form method="GET" action="/clients" class="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -210,6 +217,19 @@
       }
     }
   })();
+
+  // Auto-refresh page every 60 seconds for monitoring
+  let refreshCountdown = 60;
+  const refreshInterval = setInterval(() => {
+    refreshCountdown--;
+    const indicator = document.getElementById('refresh-indicator');
+    if (indicator) {
+      indicator.textContent = `Auto-refresh in ${refreshCountdown}s`;
+    }
+    if (refreshCountdown <= 0) {
+      location.reload();
+    }
+  }, 1000);
 </script>
 
 <%- include('partials/footer') %>

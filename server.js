@@ -66,15 +66,16 @@ if (process.env.NODE_ENV !== 'production') {
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session configuration
+// Session configuration - no auto logout
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
+  rolling: true, // Reset session on each request
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: parseInt(process.env.SESSION_TIMEOUT) || 1800000 // 30 minutes
+    maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year - effectively no timeout
   }
 }));
 
