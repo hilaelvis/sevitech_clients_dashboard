@@ -258,6 +258,7 @@ class AirtableService {
         New: 0,
         Responded: 0,
         Interested: 0,
+        'Was Send': 0,
         Closed: 0
       };
 
