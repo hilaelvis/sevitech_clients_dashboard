@@ -224,10 +224,13 @@
     refreshCountdown--;
     const indicator = document.getElementById('refresh-indicator');
     if (indicator) {
-      indicator.textContent = `Auto-refresh in ${refreshCountdown}s`;
-    }
-    if (refreshCountdown <= 0) {
-      location.reload();
+      if (refreshCountdown <= 0) {
+        indicator.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Refreshing...';
+        clearInterval(refreshInterval);
+        location.reload();
+      } else {
+        indicator.innerHTML = '<i class="fas fa-sync-alt mr-1"></i>Auto-refresh in ' + refreshCountdown + 's';
+      }
     }
   }, 1000);
 </script>
