@@ -109,7 +109,7 @@ app.get('/', (req, res) => {
   if (req.isAuthenticated()) {
     res.redirect('/dashboard');
   } else {
-    res.redirect('/auth/login');
+    res.render('home');
   }
 });
 
