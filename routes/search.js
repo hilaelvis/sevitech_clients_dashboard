@@ -6,7 +6,7 @@ const WEBHOOK_URL      = process.env.N8N_WEBHOOK_URL;
 const WEBHOOK_TEST_URL = process.env.N8N_WEBHOOK_TEST_URL;
 
 router.get('/', ensureAuthenticated, (req, res) => {
-  res.render('search', { title: 'Client Search' });
+  res.render('search', { title: 'Add new Clients' });
 });
 
 router.post('/run', ensureAuthenticated, async (req, res) => {

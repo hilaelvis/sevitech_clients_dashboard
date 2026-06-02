@@ -17,6 +17,13 @@
       </li>
 
       <li>
+        <a href="/search" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/search') ? 'bg-primary text-white hover:bg-primary' : '' %>">
+          <i class="fas fa-plus-circle w-5"></i>
+          <span class="ml-3">Add new Clients</span>
+        </a>
+      </li>
+
+      <li>
         <a href="/clients" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/clients') ? 'bg-primary text-white hover:bg-primary' : '' %>">
           <i class="fas fa-users w-5"></i>
           <span class="ml-3">Clients</span>
@@ -34,13 +41,6 @@
         <a href="/analytics" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/analytics') ? 'bg-primary text-white hover:bg-primary' : '' %>">
           <i class="fas fa-chart-bar w-5"></i>
           <span class="ml-3">Analytics</span>
-        </a>
-      </li>
-
-      <li>
-        <a href="/search" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/search') ? 'bg-primary text-white hover:bg-primary' : '' %>">
-          <i class="fas fa-magnifying-glass-location w-5"></i>
-          <span class="ml-3">Client Search</span>
         </a>
       </li>
 
