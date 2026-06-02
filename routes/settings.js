@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { passwordChangeValidation, validate } = require('../utils/validators');
-const { users } = require('../config/passport');
+const { getAdminPassword, setAdminPassword } = require('../config/passport');
 
 // Settings page
 router.get('/', ensureAuthenticated, (req, res) => {
@@ -16,26 +15,15 @@ router.get('/', ensureAuthenticated, (req, res) => {
 router.post('/password', ensureAuthenticated, passwordChangeValidation, validate, async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const user = users.find(u => u.id === req.user.id);
 
-    if (!user) {
-      req.flash('error_msg', 'User not found');
-      return res.redirect('/settings');
-    }
-
-    // Verify current password
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-
-    if (!isMatch) {
+    if (currentPassword !== getAdminPassword()) {
       req.flash('error_msg', 'Current password is incorrect');
       return res.redirect('/settings');
     }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
+    setAdminPassword(newPassword);
 
-    req.flash('success_msg', 'Password changed successfully');
+    req.flash('success_msg', 'Password changed successfully. To make it permanent, update ADMIN_PASSWORD in your Vercel environment variables.');
     res.redirect('/settings');
   } catch (error) {
     next(error);
