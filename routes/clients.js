@@ -93,9 +93,15 @@ router.post('/:id/status', ensureAuthenticated, async (req, res, next) => {
 
     await airtableService.updateClientStatus(id, status);
 
-    req.flash('success_msg', 'Client status updated successfully');
+    if (req.accepts('json') === 'json') {
+      return res.json({ ok: true });
+    }
+    req.flash('success_msg', 'Status updated');
     res.redirect(`/clients/${id}`);
   } catch (error) {
+    if (req.accepts('json') === 'json') {
+      return res.status(500).json({ ok: false });
+    }
     next(error);
   }
 });

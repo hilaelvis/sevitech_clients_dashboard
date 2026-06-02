@@ -102,9 +102,17 @@
               </td>
               <td class="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"><%= client.phone || 'N/A' %></td>
               <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
-                <span class="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full <%= getStatusColor(client.status) %>">
-                  <%= client.status %>
-                </span>
+                <select
+                  data-client-id="<%= client.id %>"
+                  onchange="updateClientStatus(this)"
+                  class="status-select text-xs font-semibold rounded-full px-2 py-1 border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-blue-400 <%= getStatusColor(client.status) %>"
+                >
+                  <option value="New" <%= client.status === 'New' ? 'selected' : '' %>>New</option>
+                  <option value="Responded" <%= client.status === 'Responded' ? 'selected' : '' %>>Responded</option>
+                  <option value="Interested" <%= client.status === 'Interested' ? 'selected' : '' %>>Interested</option>
+                  <option value="Was Sent" <%= client.status === 'Was Sent' ? 'selected' : '' %>>Was Sent</option>
+                  <option value="Closed" <%= client.status === 'Closed' ? 'selected' : '' %>>Closed</option>
+                </select>
               </td>
               <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                 <% if (client.phone_type) { %>
@@ -178,6 +186,59 @@
   localStorage.removeItem('clientsLastStatus');
   localStorage.removeItem('clientsLastPhoneType');
   localStorage.removeItem('clientsLastSearch');
+
+  const STATUS_COLORS = {
+    'New':        'bg-blue-100 text-blue-800',
+    'Responded':  'bg-yellow-100 text-yellow-800',
+    'Interested': 'bg-green-100 text-green-800',
+    'Was Sent':   'bg-purple-100 text-purple-800',
+    'Closed':     'bg-gray-100 text-gray-800'
+  };
+  const ALL_STATUS_CLASSES = Object.values(STATUS_COLORS).flatMap(c => c.split(' '));
+
+  async function updateClientStatus(select) {
+    const clientId = select.dataset.clientId;
+    const status = select.value;
+    const prev = [...select.classList].filter(c => ALL_STATUS_CLASSES.includes(c));
+
+    try {
+      const res = await fetch(`/clients/${clientId}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        body: `status=${encodeURIComponent(status)}`
+      });
+      if (!res.ok) throw new Error();
+
+      // Update badge color
+      select.classList.remove(...prev);
+      select.classList.add(...(STATUS_COLORS[status] || 'bg-gray-100 text-gray-800').split(' '));
+      showToast('Status updated', 'success');
+    } catch {
+      select.value = prev.includes('text-blue-800') ? 'New'
+        : prev.includes('text-yellow-800') ? 'Responded'
+        : prev.includes('text-green-800') ? 'Interested'
+        : prev.includes('text-purple-800') ? 'Was Sent' : 'Closed';
+      showToast('Failed to update status', 'error');
+    }
+  }
+
+  function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = `px-4 py-2 rounded-lg text-white text-sm shadow-lg mb-2 transition-opacity ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+    t.textContent = msg;
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      container.className = 'fixed bottom-4 right-4 z-50';
+      document.body.appendChild(container);
+    }
+    container.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2000);
+  }
 
   // Auto-refresh page every 60 seconds for monitoring
   let refreshCountdown = 60;
