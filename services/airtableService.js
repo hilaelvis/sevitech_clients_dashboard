@@ -38,8 +38,16 @@ class AirtableService {
         filterConditions.push(`{Status} = '${filters.status}'`);
       }
 
-      if (filters.phone_type) {
-        filterConditions.push(`{phone_type} = '${filters.phone_type}'`);
+      if (filters.category) {
+        filterConditions.push(`SEARCH(LOWER('${filters.category.toLowerCase()}'), LOWER({category}))`);
+      }
+
+      if (filters.date_range) {
+        if (filters.date_range === 'today') {
+          filterConditions.push(`IS_SAME({created_time}, TODAY(), 'day')`);
+        } else {
+          filterConditions.push(`IS_AFTER({created_time}, DATEADD(TODAY(), -${parseInt(filters.date_range)}, 'days'))`);
+        }
       }
 
       if (filters.search) {

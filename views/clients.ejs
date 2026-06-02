@@ -10,24 +10,18 @@
 
 <!-- Header with search and filters -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-  <form method="GET" action="/clients" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+  <form method="GET" action="/clients" class="grid grid-cols-1 md:grid-cols-6 gap-4">
     <!-- Search -->
     <div class="md:col-span-2">
-      <input
-        type="text"
-        name="search"
-        placeholder="Search by business name, phone, or conversation ID..."
+      <input type="text" name="search"
+        placeholder="Search by business name, phone, or ID..."
         value="<%= filters.search || '' %>"
-        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-      >
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
     </div>
 
     <!-- Status filter -->
     <div>
-      <select
-        name="status"
-        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-      >
+      <select name="status" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
         <option value="">All Statuses</option>
         <option value="New" <%= filters.status === 'New' ? 'selected' : '' %>>New</option>
         <option value="Responded" <%= filters.status === 'Responded' ? 'selected' : '' %>>Responded</option>
@@ -37,26 +31,33 @@
       </select>
     </div>
 
-    <!-- Phone Type filter -->
+    <!-- Category filter -->
     <div>
-      <select
-        name="phone_type"
-        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-      >
-        <option value="">All Phone Types</option>
-        <option value="Mobile" <%= filters.phone_type === 'Mobile' ? 'selected' : '' %>>Mobile</option>
-        <option value="Landline" <%= filters.phone_type === 'Landline' ? 'selected' : '' %>>Landline</option>
+      <input type="text" name="category"
+        placeholder="Category..."
+        value="<%= filters.category || '' %>"
+        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+    </div>
+
+    <!-- Date Created filter -->
+    <div>
+      <select name="date_range" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+        <option value="">Any date</option>
+        <option value="today" <%= filters.date_range === 'today' ? 'selected' : '' %>>Today</option>
+        <option value="7" <%= filters.date_range === '7' ? 'selected' : '' %>>Last 7 days</option>
+        <option value="30" <%= filters.date_range === '30' ? 'selected' : '' %>>Last 30 days</option>
+        <option value="90" <%= filters.date_range === '90' ? 'selected' : '' %>>Last 90 days</option>
       </select>
     </div>
 
-    <!-- Submit button -->
+    <!-- Buttons -->
     <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
       <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition flex items-center justify-center">
         <i class="fas fa-search mr-2"></i>Search
       </button>
       <a href="/clients/export/csv" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center justify-center space-x-2" title="Export to CSV">
         <i class="fas fa-download"></i>
-        <span>Export CSV</span>
+        <span class="hidden sm:inline">CSV</span>
       </a>
     </div>
   </form>
@@ -71,7 +72,7 @@
           <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Business</th>
           <th class="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Phone</th>
           <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-          <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Phone Type</th>
+          <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
           <th class="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Socials</th>
           <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
           <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
@@ -114,14 +115,11 @@
                   <option value="Closed" <%= client.status === 'Closed' ? 'selected' : '' %>>Closed</option>
                 </select>
               </td>
-              <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                <% if (client.phone_type) { %>
-                  <span class="inline-flex items-center">
-                    <i class="fas <%= client.phone_type === 'Mobile' ? 'fa-mobile-alt' : 'fa-phone' %> mr-2 text-gray-500 dark:text-gray-400"></i>
-                    <%= client.phone_type %>
-                  </span>
+              <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                <% if (client.category) { %>
+                  <span class="inline-block bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full"><%= client.category %></span>
                 <% } else { %>
-                  <span class="text-gray-400">N/A</span>
+                  <span class="text-gray-400">—</span>
                 <% } %>
               </td>
               <td class="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
@@ -162,13 +160,13 @@
         </div>
         <div class="flex space-x-2">
           <% if (pagination.hasPrev) { %>
-            <a href="?page=<%= pagination.currentPage - 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.phone_type ? '&phone_type=' + filters.phone_type : '' %>"
+            <a href="?page=<%= pagination.currentPage - 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.category ? '&category=' + encodeURIComponent(filters.category) : '' %><%= filters.date_range ? '&date_range=' + filters.date_range : '' %>"
                class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
               <i class="fas fa-chevron-left sm:mr-2"></i><span class="hidden sm:inline">Previous</span>
             </a>
           <% } %>
           <% if (pagination.hasNext) { %>
-            <a href="?page=<%= pagination.currentPage + 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.phone_type ? '&phone_type=' + filters.phone_type : '' %>"
+            <a href="?page=<%= pagination.currentPage + 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.status ? '&status=' + filters.status : '' %><%= filters.category ? '&category=' + encodeURIComponent(filters.category) : '' %><%= filters.date_range ? '&date_range=' + filters.date_range : '' %>"
                class="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
               <span class="hidden sm:inline">Next</span><i class="fas fa-chevron-right sm:ml-2"></i>
             </a>
