@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth');
 
-const WEBHOOK_URL      = process.env.N8N_WEBHOOK_URL      || 'https://sevitech.site/n8n/webhook/sevitech-scraper';
-const WEBHOOK_TEST_URL = process.env.N8N_WEBHOOK_TEST_URL || 'https://sevitech.site/n8n/webhook-test/sevitech-scraper';
+const WEBHOOK_URL      = process.env.N8N_WEBHOOK_URL;
+const WEBHOOK_TEST_URL = process.env.N8N_WEBHOOK_TEST_URL;
 
 router.get('/', ensureAuthenticated, (req, res) => {
   res.render('search', { title: 'Client Search' });
@@ -23,6 +23,10 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
     if (location) payload.location = location.trim();
 
     const url = test_mode === 'true' ? WEBHOOK_TEST_URL : WEBHOOK_URL;
+
+    if (!url) {
+      return res.status(500).json({ ok: false, error: 'Webhook URL not configured. Set N8N_WEBHOOK_URL in environment variables.' });
+    }
 
     const response = await fetch(url, {
       method: 'POST',
