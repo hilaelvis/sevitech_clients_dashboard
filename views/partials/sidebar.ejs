@@ -38,6 +38,13 @@
       </li>
 
       <li>
+        <a href="/search" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/search') ? 'bg-primary text-white hover:bg-primary' : '' %>">
+          <i class="fas fa-magnifying-glass-location w-5"></i>
+          <span class="ml-3">Client Search</span>
+        </a>
+      </li>
+
+      <li>
         <a href="/settings" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition <%= currentPath.startsWith('/settings') ? 'bg-primary text-white hover:bg-primary' : '' %>">
           <i class="fas fa-cog w-5"></i>
           <span class="ml-3">Settings</span>
