@@ -11,9 +11,9 @@ router.get('/login', forwardAuthenticated, (req, res) => {
     title: 'Login',
     layout: false,
     messages: {
-      error_msg: req.flash('error_msg'),
-      error: req.flash('error'),
-      success_msg: req.flash('success_msg')
+      error_msg: res.locals.error_msg,
+      error: res.locals.error,
+      success_msg: res.locals.success_msg
     }
   });
 });
