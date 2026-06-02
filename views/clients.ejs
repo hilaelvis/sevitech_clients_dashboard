@@ -174,61 +174,10 @@
 <%- include('partials/content-end') %>
 
 <script>
-  // Remember last filter preferences
-  (function() {
-    const form = document.querySelector('form[action="/clients"]');
-    const statusSelect = document.querySelector('select[name="status"]');
-    const phoneTypeSelect = document.querySelector('select[name="phone_type"]');
-    const searchInput = document.querySelector('input[name="search"]');
-
-    // Save filters to localStorage when form is submitted
-    form.addEventListener('submit', function() {
-      if (statusSelect.value) {
-        localStorage.setItem('clientsLastStatus', statusSelect.value);
-      } else {
-        localStorage.removeItem('clientsLastStatus');
-      }
-
-      if (phoneTypeSelect.value) {
-        localStorage.setItem('clientsLastPhoneType', phoneTypeSelect.value);
-      } else {
-        localStorage.removeItem('clientsLastPhoneType');
-      }
-
-      if (searchInput.value) {
-        localStorage.setItem('clientsLastSearch', searchInput.value);
-      } else {
-        localStorage.removeItem('clientsLastSearch');
-      }
-    });
-
-    // Apply saved filters on page load if no filters in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasStatusInUrl = urlParams.has('status');
-    const hasPhoneTypeInUrl = urlParams.has('phone_type');
-    const hasSearchInUrl = urlParams.has('search');
-
-    // Only apply saved filters if coming to page without any filters
-    if (!hasStatusInUrl && !hasPhoneTypeInUrl && !hasSearchInUrl && urlParams.get('page') === null) {
-      const savedStatus = localStorage.getItem('clientsLastStatus');
-      const savedPhoneType = localStorage.getItem('clientsLastPhoneType');
-      const savedSearch = localStorage.getItem('clientsLastSearch');
-
-      if (savedStatus || savedPhoneType || savedSearch) {
-        const newUrl = new URL(window.location.href);
-        if (savedStatus) {
-          newUrl.searchParams.set('status', savedStatus);
-        }
-        if (savedPhoneType) {
-          newUrl.searchParams.set('phone_type', savedPhoneType);
-        }
-        if (savedSearch) {
-          newUrl.searchParams.set('search', savedSearch);
-        }
-        window.location.href = newUrl.toString();
-      }
-    }
-  })();
+  // Clear any stale saved filters from localStorage
+  localStorage.removeItem('clientsLastStatus');
+  localStorage.removeItem('clientsLastPhoneType');
+  localStorage.removeItem('clientsLastSearch');
 
   // Auto-refresh page every 60 seconds for monitoring
   let refreshCountdown = 60;
