@@ -67,7 +67,7 @@ router.get('/:id', ensureAuthenticated, async (req, res, next) => {
     const messages = await airtableService.getMessagesByConversationId(client.conversation_id);
 
     res.render('client-detail', {
-      title: `Client: ${client.name}`,
+      title: `Client: ${client.business_name}`,
       client,
       messages,
       formatDate,
@@ -99,9 +99,9 @@ router.post('/:id/status', ensureAuthenticated, async (req, res, next) => {
 router.post('/:id/update', ensureAuthenticated, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, phone_number } = req.body;
+    const { business_name, phone } = req.body;
 
-    await airtableService.updateClientDetails(id, { name, phone_number });
+    await airtableService.updateClientDetails(id, { business_name, phone });
 
     req.flash('success_msg', 'Client details updated successfully');
     res.redirect(`/clients/${id}`);

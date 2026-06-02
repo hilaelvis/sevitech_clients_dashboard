@@ -1,13 +1,37 @@
 const { base, TABLES } = require('../config/airtable');
 const moment = require('moment');
 
+const mapClient = (record) => ({
+  id: record.id,
+  recordId: record.id,
+  business_name: record.get('business_name'),
+  category: record.get('category'),
+  phone: record.get('phone'),
+  website: record.get('website'),
+  email: record.get('email'),
+  address: record.get('address'),
+  rating: record.get('rating'),
+  facebook: record.get('facebook'),
+  instagram: record.get('instagram'),
+  linkedin: record.get('linkedin'),
+  twitter: record.get('twitter'),
+  tiktok: record.get('tiktok'),
+  youtube: record.get('youtube'),
+  web_phones: record.get('web_phones'),
+  web_emails: record.get('web_emails'),
+  scraped_at: record.get('scraped_at'),
+  status: record.get('Status'),
+  phone_type: record.get('phone_type'),
+  conversation_id: record.get('conversation_id'),
+  created_time: record.get('created_time'),
+  messages: record.get('Messages') || []
+});
+
 class AirtableService {
   // Get all clients with optional filters
   async getAllClients(filters = {}) {
     try {
       const clients = [];
-
-      // Build filter formula by combining all filters
       const filterConditions = [];
 
       if (filters.status) {
@@ -21,13 +45,12 @@ class AirtableService {
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
         filterConditions.push(`OR(
-          SEARCH(LOWER('${searchTerm}'), LOWER({name})),
-          SEARCH('${searchTerm}', {phone_number}),
+          SEARCH(LOWER('${searchTerm}'), LOWER({business_name})),
+          SEARCH('${searchTerm}', {phone}),
           SEARCH('${searchTerm}', {conversation_id})
         )`);
       }
 
-      // Build query with combined filters
       const queryOptions = {
         sort: [{ field: 'created_time', direction: 'desc' }]
       };
@@ -38,22 +61,8 @@ class AirtableService {
           : `AND(${filterConditions.join(', ')})`;
       }
 
-      const query = base(TABLES.CLIENTS).select(queryOptions);
-
-      await query.eachPage((records, fetchNextPage) => {
-        records.forEach(record => {
-          clients.push({
-            id: record.id,
-            recordId: record.id,
-            phone_number: record.get('phone_number'),
-            name: record.get('name'),
-            status: record.get('Status'),
-            phone_type: record.get('phone_type'),
-            conversation_id: record.get('conversation_id'),
-            created_time: record.get('created_time'),
-            messages: record.get('Messages') || []
-          });
-        });
+      await base(TABLES.CLIENTS).select(queryOptions).eachPage((records, fetchNextPage) => {
+        records.forEach(record => clients.push(mapClient(record)));
         fetchNextPage();
       });
 
@@ -68,17 +77,7 @@ class AirtableService {
   async getClientById(id) {
     try {
       const record = await base(TABLES.CLIENTS).find(id);
-      return {
-        id: record.id,
-        recordId: record.id,
-        phone_number: record.get('phone_number'),
-        name: record.get('name'),
-        status: record.get('Status'),
-        phone_type: record.get('phone_type'),
-        conversation_id: record.get('conversation_id'),
-        created_time: record.get('created_time'),
-        messages: record.get('Messages') || []
-      };
+      return mapClient(record);
     } catch (error) {
       console.error('Error fetching client:', error);
       throw error;
@@ -93,22 +92,8 @@ class AirtableService {
         maxRecords: 1
       }).firstPage();
 
-      if (records.length === 0) {
-        return null;
-      }
-
-      const record = records[0];
-      return {
-        id: record.id,
-        recordId: record.id,
-        phone_number: record.get('phone_number'),
-        name: record.get('name'),
-        status: record.get('Status'),
-        phone_type: record.get('phone_type'),
-        conversation_id: record.get('conversation_id'),
-        created_time: record.get('created_time'),
-        messages: record.get('Messages') || []
-      };
+      if (records.length === 0) return null;
+      return mapClient(records[0]);
     } catch (error) {
       console.error('Error fetching client by conversation ID:', error);
       throw error;
@@ -123,7 +108,6 @@ class AirtableService {
         sort: [{ field: 'timestamp', direction: 'desc' }]
       });
 
-      // Apply filters
       if (filters.sender) {
         query = base(TABLES.MESSAGES).select({
           filterByFormula: `{sender} = '${filters.sender}'`,
@@ -201,14 +185,8 @@ class AirtableService {
   // Update client status
   async updateClientStatus(id, status) {
     try {
-      const record = await base(TABLES.CLIENTS).update(id, {
-        Status: status
-      });
-
-      return {
-        id: record.id,
-        status: record.get('Status')
-      };
+      const record = await base(TABLES.CLIENTS).update(id, { Status: status });
+      return { id: record.id, status: record.get('Status') };
     } catch (error) {
       console.error('Error updating client status:', error);
       throw error;
@@ -219,15 +197,14 @@ class AirtableService {
   async updateClientDetails(id, data) {
     try {
       const updateFields = {};
-      if (data.name) updateFields.name = data.name;
-      if (data.phone_number) updateFields.phone_number = data.phone_number;
+      if (data.business_name) updateFields.business_name = data.business_name;
+      if (data.phone) updateFields.phone = data.phone;
 
       const record = await base(TABLES.CLIENTS).update(id, updateFields);
-
       return {
         id: record.id,
-        name: record.get('name'),
-        phone_number: record.get('phone_number')
+        business_name: record.get('business_name'),
+        phone: record.get('phone')
       };
     } catch (error) {
       console.error('Error updating client details:', error);
@@ -243,17 +220,14 @@ class AirtableService {
 
       const today = moment().startOf('day');
 
-      // Count new clients today
       const newClientsToday = clients.filter(client =>
         moment(client.created_time).isSameOrAfter(today)
       ).length;
 
-      // Count messages today
       const messagesToday = messages.filter(msg =>
         moment(msg.timestamp).isSameOrAfter(today)
       ).length;
 
-      // Count by status
       const statusBreakdown = {
         New: 0,
         Responded: 0,
@@ -268,7 +242,6 @@ class AirtableService {
         }
       });
 
-      // Active conversations (clients with messages in last 24 hours)
       const yesterday = moment().subtract(24, 'hours');
       const activeConversations = new Set(
         messages
@@ -297,7 +270,6 @@ class AirtableService {
 
       const startDate = moment().subtract(dateRange, 'days').startOf('day');
 
-      // Messages over time
       const messagesOverTime = {};
       messages
         .filter(msg => moment(msg.timestamp).isAfter(startDate))
@@ -306,21 +278,18 @@ class AirtableService {
           messagesOverTime[date] = (messagesOverTime[date] || 0) + 1;
         });
 
-      // Platform breakdown
       const platformBreakdown = {};
       messages.forEach(msg => {
         const platform = msg.platform || 'unknown';
         platformBreakdown[platform] = (platformBreakdown[platform] || 0) + 1;
       });
 
-      // Status breakdown
       const statusBreakdown = {};
       clients.forEach(client => {
         const status = client.status || 'unknown';
         statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
       });
 
-      // Sender breakdown (client vs agent)
       const senderBreakdown = {};
       messages.forEach(msg => {
         const sender = msg.sender || 'unknown';
@@ -347,7 +316,6 @@ class AirtableService {
       const messages = await this.getAllMessages();
       const clients = await this.getAllClients();
 
-      // Group messages by conversation and get the most recent message for each
       const conversationMap = new Map();
 
       messages.forEach(message => {
@@ -356,19 +324,16 @@ class AirtableService {
           conversationMap.set(message.conversation_id, {
             ...message,
             clientId: client ? client.id : null,
-            clientName: client ? client.name : 'Unknown',
-            clientPhone: client ? client.phone_number : 'N/A',
+            clientName: client ? client.business_name : 'Unknown',
+            clientPhone: client ? client.phone : 'N/A',
             clientStatus: client ? client.status : 'Unknown'
           });
         }
       });
 
-      // Convert to array and sort by timestamp, then limit
-      const recentConversations = Array.from(conversationMap.values())
+      return Array.from(conversationMap.values())
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
         .slice(0, limit);
-
-      return recentConversations;
     } catch (error) {
       console.error('Error fetching recent activity:', error);
       throw error;

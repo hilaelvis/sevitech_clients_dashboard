@@ -33,11 +33,23 @@ const paginate = (array, page = 1, limit = 20) => {
 const exportClientsToCSV = (clients) => {
   try {
     const fields = [
-      { label: 'Name', value: 'name' },
-      { label: 'Phone Number', value: 'phone_number' },
+      { label: 'Business Name', value: 'business_name' },
+      { label: 'Category', value: 'category' },
+      { label: 'Phone', value: 'phone' },
+      { label: 'Email', value: 'email' },
+      { label: 'Website', value: 'website' },
+      { label: 'Address', value: 'address' },
+      { label: 'Rating', value: 'rating' },
       { label: 'Status', value: 'status' },
+      { label: 'Phone Type', value: 'phone_type' },
       { label: 'Conversation ID', value: 'conversation_id' },
-      { label: 'Created Date', value: 'created_time' }
+      { label: 'Created Date', value: 'created_time' },
+      { label: 'Facebook', value: 'facebook' },
+      { label: 'Instagram', value: 'instagram' },
+      { label: 'LinkedIn', value: 'linkedin' },
+      { label: 'Twitter', value: 'twitter' },
+      { label: 'TikTok', value: 'tiktok' },
+      { label: 'YouTube', value: 'youtube' }
     ];
 
     const parser = new Parser({ fields });
@@ -83,8 +95,8 @@ const generateConversationPDF = (client, messages) => {
       doc.moveDown();
 
       // Client details
-      doc.fontSize(12).text(`Client: ${client.name}`, { continued: false });
-      doc.text(`Phone: ${client.phone_number}`);
+      doc.fontSize(12).text(`Client: ${client.business_name}`, { continued: false });
+      doc.text(`Phone: ${client.phone}`);
       doc.text(`Conversation ID: ${client.conversation_id}`);
       doc.text(`Status: ${client.status}`);
       doc.text(`Created: ${formatDate(client.created_time)}`);
@@ -95,7 +107,7 @@ const generateConversationPDF = (client, messages) => {
       doc.moveDown();
 
       messages.forEach((msg, index) => {
-        const sender = msg.sender === 'client' ? client.name : 'Agent';
+        const sender = msg.sender === 'client' ? client.business_name : 'Agent';
         const time = formatDate(msg.timestamp, 'MMM DD, YYYY HH:mm');
 
         doc.fontSize(10)
