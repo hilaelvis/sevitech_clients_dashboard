@@ -21,14 +21,12 @@ const errorHandler = (err, req, res, next) => {
 
   // Default error
   const statusCode = err.statusCode || 500;
-  const message = process.env.NODE_ENV === 'development'
-    ? err.message
-    : 'An unexpected error occurred. Please try again later.';
+  const message = err.message || 'An unexpected error occurred. Please try again later.';
 
   res.status(statusCode).render('error', {
     title: 'Error',
     message: message,
-    error: process.env.NODE_ENV === 'development' ? err : {},
+    error: err,
     layout: 'layouts/main'
   });
 };
