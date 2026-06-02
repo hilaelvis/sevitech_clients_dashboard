@@ -64,7 +64,12 @@ router.get('/:id', ensureAuthenticated, async (req, res, next) => {
   try {
     const { id } = req.params;
     const client = await airtableService.getClientById(id);
-    const messages = await airtableService.getMessagesByConversationId(client.conversation_id);
+    let messages = [];
+    try {
+      messages = await airtableService.getMessagesByConversationId(client.conversation_id);
+    } catch (msgError) {
+      console.error('Failed to load messages:', msgError);
+    }
 
     res.render('client-detail', {
       title: `Client: ${client.business_name}`,
