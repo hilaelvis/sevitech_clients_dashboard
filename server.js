@@ -19,6 +19,7 @@ const messagesRoutes = require('./routes/messages');
 const analyticsRoutes = require('./routes/analytics');
 const settingsRoutes = require('./routes/settings');
 const searchRoutes = require('./routes/search');
+const campaignRoutes = require('./routes/campaign');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -116,6 +117,7 @@ app.use('/messages', messagesRoutes);
 app.use('/analytics', analyticsRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/search', searchRoutes);
+app.use('/campaign', campaignRoutes);
 
 // Root route
 app.get('/', (req, res) => {
