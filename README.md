@@ -1,688 +1,345 @@
 # Sevitech Client Dashboard
 
-A professional Node.js web dashboard for viewing and managing client data from Airtable. Built with Express.js, EJS templates, and Tailwind CSS.
+A Node.js web dashboard for managing leads scraped from Google Maps, viewing conversation history, and launching WhatsApp outbound campaigns. Built with Express.js, EJS templates, and Tailwind CSS. Deployed on Vercel.
 
-## Features
+---
 
-### Authentication & Security
-- Secure login system with Passport.js
-- Password hashing with bcrypt
-- Session management with express-session
-- CSRF protection
-- Rate limiting on API endpoints
-- Secure headers with Helmet.js
-- Session timeout after 30 minutes of inactivity
+## How It Works — Overview
 
-### Dashboard
-- Real-time statistics
-- Total clients count
-- New clients today
-- Active conversations
-- Messages sent/received today
-- Status breakdown pie chart
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Browser (Admin)                          │
+└──────────┬──────────────────────────────────────────┬──────────┘
+           │                                          │
+           ▼                                          ▼
+┌──────────────────────┐                  ┌──────────────────────┐
+│  Express Dashboard   │◄────────────────►│     Airtable API     │
+│  (Vercel Serverless) │                  │  (Clients + Messages)│
+└──────────┬───────────┘                  └──────────────────────┘
+           │
+           ├──► POST /search/run  ──────► n8n Scraper Webhook
+           │                              (scrapes Google Maps,
+           │                               saves to Airtable)
+           │
+           └──► POST /campaign/run ─────► sevitech.site API
+                                          (sends WhatsApp messages
+                                           to New leads via n8n)
+```
+
+The dashboard is the central control panel:
+- **Reads** client/message data from Airtable
+- **Triggers** new lead scraping via an n8n webhook
+- **Launches** WhatsApp outbound campaigns via the sevitech.site API
+
+---
+
+## Pages & Features
+
+### Sidebar Navigation (in order)
+
+| Page | Route | Description |
+|---|---|---|
+| Dashboard | `/dashboard` | Stats overview + recent activity |
+| Add new Clients | `/search` | Trigger Google Maps scraper |
+| Clients | `/clients` | View, filter, and manage all leads |
+| Outbound Campaign | `/campaign` | Send WhatsApp messages to New leads |
+| Messages | `/messages` | View all conversation messages |
+| Analytics | `/analytics` | Charts and breakdowns |
+| Settings | `/settings` | Change password |
+
+---
+
+### Dashboard (`/dashboard`)
+- Total clients, new today, active conversations, messages today
+- Status breakdown (New / Responded / Interested / Was Sent / Closed)
 - Recent activity timeline
-- Auto-refresh every 30 seconds
-- Integrated analytics charts (messages over time, platform usage, sender breakdown, status distribution)
+- Integrated analytics charts (messages over time, platform usage, status distribution, sender breakdown)
+- Auto-refreshes stats every 30 seconds
 
-### Client Management
-- Searchable and filterable client list
-- Sort by name, date, status
-- Pagination (20 per page)
-- Client detail view with full conversation history
-- Update client status
-- Export clients to CSV
-- Export conversations to PDF
+---
 
-### Messages
-- View all messages in one place
-- Filter by client, date, sender, platform
-- Search in message content
-- Export filtered results to CSV
+### Add new Clients (`/search`)
+A scraper trigger form. Sends a POST to the n8n webhook which scrapes Google Maps and saves results to Airtable automatically.
 
-### Analytics
+**Two modes:**
+- **By Keywords** — Enter search terms (one per line) + location. n8n appends location to each keyword and searches.
+- **By Maps URL** — Paste a Google Maps search URL. n8n uses the exact area and zoom level from the URL.
+
+**Fields:**
+- Keywords (one per line) or Maps URL
+- Location (e.g. "Milano, Italy") — used with keywords only
+- Max results (default 50, max 500 per keyword)
+- Test mode checkbox — uses the `webhook-test` endpoint (n8n must be in listen mode)
+
+**Behavior:** Responds immediately with 200. Scraping runs in the background (1–3 min). Results appear in the Clients page automatically.
+
+**Env vars used:**
+- `N8N_WEBHOOK_URL` — production webhook
+- `N8N_WEBHOOK_TEST_URL` — test webhook
+
+---
+
+### Clients (`/clients`)
+Full lead management table.
+
+**Filters:**
+- Search by business name, phone, or conversation ID
+- Status dropdown (New / Responded / Interested / Was Sent / Closed)
+- Category text input (partial match)
+- Date created range (Today / Last 7/30/90 days)
+
+**Table columns:**
+- Business name + category subtitle
+- Phone
+- Status — **inline editable dropdown** (changes saved to Airtable via AJAX without page reload)
+- Category badge
+- Socials — clickable icons (globe, Facebook, Instagram, LinkedIn, X, TikTok, YouTube) — only shown if the link exists
+- Created date
+- View button
+
+**Export:** CSV export with all fields including all social links.
+
+---
+
+### Client Detail (`/clients/:id`)
+Full detail view for a single client.
+
+**Info panel:**
+- Business name, category badge
+- Phone, email, address, website
+- Rating
+- Social media icons section (only rendered if at least one link exists)
+- Inline status change dropdown
+- Conversation ID, created date, message count
+- Export as PDF button
+
+**Conversation panel:**
+- WhatsApp-style chat view showing all messages
+- Incoming (client) and outgoing (agent) message bubbles with timestamps
+
+---
+
+### Outbound Campaign (`/campaign`)
+Launches a WhatsApp outbound campaign. The server proxies the request to the sevitech.site API with a Bearer token.
+
+**Fields:**
+- Category — All / Restaurant / Hotel / Cleaning / Clinic / Real Estate / Generic
+- How many to send (default 20, max 200)
+- Message textarea — the exact WhatsApp text to send
+- Test mode checkbox
+
+**Behavior:** Calls `POST https://sevitech.site/api/outbound/trigger` server-side. n8n picks up the request, finds leads with status "New" matching the category, and sends the message via +39 3510218513 with a 30-second delay between each send.
+
+**Env vars used:**
+- `OUTBOUND_API_URL` — production API endpoint
+- `OUTBOUND_API_TEST_URL` — test endpoint
+- `OUTBOUND_API_TOKEN` — Bearer token (the `wa_token` JWT from sevitech.site)
+
+---
+
+### Messages (`/messages`)
+View all messages across all conversations. Filter by sender, platform, or search within message text. Export to CSV.
+
+---
+
+### Analytics (`/analytics`)
+Charts with configurable date ranges (7 / 30 / 90 / 365 days):
 - Messages over time (line chart)
-- Client status distribution (pie chart)
-- Platform usage breakdown (bar chart)
+- Platform breakdown (bar chart)
+- Status distribution (pie chart)
 - Sender breakdown (client vs agent)
-- Customizable date ranges (7, 30, 90, 365 days)
 
-### Settings
-- Change password
-- View Airtable configuration
-- Dark mode toggle
-- User preferences
+---
 
-### UI/UX
-- Responsive design (mobile, tablet, desktop)
-- Dark mode support
-- Loading states for API calls
-- Toast notifications
-- Professional color scheme
-- Smooth animations
-- Collapsible sidebar navigation
-- Icon-only theme toggle button
+### Settings (`/settings`)
+Change the admin password. Note: password changes persist only for the current server instance. To make permanent changes, update `ADMIN_PASSWORD` in Vercel environment variables.
 
-## How It Works
+---
 
-### Architecture Overview
+## Architecture
 
-The Sevitech Client Dashboard follows a traditional **MVC (Model-View-Controller)** architecture pattern with a server-side rendering approach:
+### Authentication
+Passport.js with a Local Strategy. On login, credentials are compared directly against `ADMIN_USERNAME` and `ADMIN_PASSWORD` environment variables — no database lookup, no bcrypt. This is stateless and works correctly in serverless environments.
 
-```
-┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-│   Browser   │ ◄─────► │   Express   │ ◄─────► │  Airtable   │
-│   (Client)  │         │   Server    │         │     API     │
-└─────────────┘         └─────────────┘         └─────────────┘
-      │                        │                        │
-      │                        │                        │
-   EJS Views              Routes/Logic            Data Storage
-```
+Sessions are stored in a **signed cookie** (`cookie-session`) on the client side. No server-side session store is needed, making the app fully stateless and serverless-compatible.
 
-### How the Application is Built
+### Serverless Compatibility (Vercel)
+The app runs as a Vercel serverless function. Key design decisions for serverless:
+- **`cookie-session`** instead of `express-session` — sessions survive across different function instances
+- **Direct env var auth** instead of in-memory user store — no cold-start race conditions
+- **`app.set('trust proxy', 1)`** — correct IP detection and secure cookie handling behind Vercel's reverse proxy
 
-#### 1. **Backend Server (Node.js + Express)**
-The application is built on Node.js using the Express.js framework:
+### Data Layer
+All Airtable operations go through `services/airtableService.js`. It uses a shared `mapClient()` function to normalize record fields. The Airtable npm client handles pagination automatically.
 
-- **server.js**: Main entry point that initializes the Express app, configures middleware, sets up session management, and starts the HTTP server
-- **Middleware Layer**: Handles authentication, error handling, security (Helmet.js), and rate limiting
-- **Route Handlers**: Process HTTP requests and coordinate between services and views
+### n8n Integration
+Two webhook integrations with n8n:
+1. **Scraper** (`/search`) — triggers a Google Maps scraping workflow that saves new leads to Airtable
+2. **Campaign** (`/campaign`) — proxies to sevitech.site API which triggers an n8n workflow that sends WhatsApp messages
 
-#### 2. **Authentication System (Passport.js)**
-User authentication is handled by Passport.js with a local strategy:
+---
 
-- Passwords are hashed using bcrypt before storage
-- Sessions are managed using express-session with secure cookies
-- Authentication middleware protects all routes except login
-- Automatic session timeout after 30 minutes of inactivity
+## Airtable Schema
 
-#### 3. **Data Layer (Airtable Service)**
-All data operations go through a centralized service layer:
+### Clients Table
+| Field | Type | Notes |
+|---|---|---|
+| `business_name` | Text | Primary identifier |
+| `category` | Text | e.g. Cleaners, Hotel |
+| `phone` | Text | Primary phone |
+| `website` | URL | |
+| `email` | Text | |
+| `address` | Text | |
+| `rating` | Number | 0–5 |
+| `facebook` | URL | |
+| `instagram` | URL | |
+| `linkedin` | URL | |
+| `twitter` | URL | |
+| `tiktok` | URL | |
+| `youtube` | URL | |
+| `web_phones` | Text | Additional phones from website |
+| `web_emails` | Text | Additional emails from website |
+| `scraped_at` | DateTime | When the record was scraped |
+| `Status` | Single select | New / Responded / Interested / Was Sent / Closed |
+| `phone_type` | Single select | Mobile / Landline |
+| `conversation_id` | Text | e.g. CONV-2026-540 |
+| `created_time` | DateTime | |
+| `Messages` | Linked records | Links to Messages table |
 
-- **services/airtableService.js**: Handles all Airtable API calls
-- Provides methods for fetching clients, messages, statistics, and analytics
-- Implements caching and error handling
-- Abstracts the Airtable API from the rest of the application
+### Messages Table
+| Field | Type |
+|---|---|
+| `conversation_id` | Text |
+| `client` | Linked record |
+| `message_text` | Long text |
+| `sender` | Single select (Client / Agent) |
+| `timestamp` | DateTime |
+| `platform` | Single select (whatsapp / sms / messenger) |
 
-#### 4. **View Layer (EJS Templates)**
-Server-side rendering using EJS (Embedded JavaScript):
+---
 
-- **Layouts**: Main layout template with header, sidebar, and footer partials
-- **Pages**: Individual views for dashboard, clients, messages, analytics, settings
-- **Dynamic Data**: Data is passed from routes to templates and rendered server-side
-- **Client-side JavaScript**: Handles interactivity (theme toggle, charts, form submissions)
+## Environment Variables
 
-#### 5. **Styling (Tailwind CSS)**
-Utility-first CSS framework for rapid UI development:
-
-- Responsive design with mobile-first approach
-- Dark mode support using Tailwind's dark mode utilities
-- Custom color palette for brand consistency
-- Minimal custom CSS required
-
-### Data Flow
-
-#### Example: Loading the Dashboard
-
-1. **User Request**: User navigates to `/dashboard`
-2. **Authentication**: Middleware checks if user is logged in
-3. **Route Handler**: `routes/dashboard.js` processes the request
-4. **Data Fetching**:
-   - Calls `airtableService.getDashboardStats()` for statistics
-   - Calls `airtableService.getRecentActivity()` for recent conversations
-   - Calls `airtableService.getAnalytics()` for analytics data
-5. **Data Processing**: Route handler formats data and prepares view context
-6. **Template Rendering**: Express renders `dashboard.ejs` with data
-7. **Response**: HTML is sent to browser
-8. **Client-side Enhancement**: JavaScript initializes charts using Chart.js
-
-#### Example: Updating Client Status
-
-1. **User Action**: User changes status dropdown on client detail page
-2. **AJAX Request**: Frontend JavaScript sends POST request to `/clients/:id/status`
-3. **Authentication**: Middleware verifies session
-4. **Route Handler**: Validates the new status value
-5. **Airtable Update**: `airtableService.updateClientStatus()` updates the record
-6. **Response**: Success/error message sent back to client
-7. **UI Update**: Frontend shows toast notification and updates the UI
-
-### Key Components
-
-#### Airtable Integration
-The application connects to Airtable as its database:
-
-- **Clients Table**: Stores client information and status
-- **Messages Table**: Stores all conversation messages with timestamps
-- **Real-time Sync**: Data is fetched fresh on each page load
-- **API Rate Limits**: Service layer handles rate limiting gracefully
-
-#### Analytics Engine
-The analytics system processes message data to generate insights:
-
-- **Time Series Data**: Groups messages by date for trend analysis
-- **Aggregations**: Calculates totals, averages, and breakdowns
-- **Visualization**: Chart.js renders interactive charts
-- **Date Ranges**: Supports multiple time ranges (7, 30, 90, 365 days)
-
-#### Session Management
-Secure session handling for user authentication:
-
-- **Session Store**: Uses in-memory store (can be upgraded to Redis for production)
-- **Secure Cookies**: HTTP-only cookies prevent XSS attacks
-- **Session Timeout**: Automatic logout after inactivity
-- **CSRF Protection**: Prevents cross-site request forgery attacks
-
-#### Export Functionality
-Multiple export formats for data portability:
-
-- **CSV Export**: Clients and messages can be exported to CSV
-- **PDF Export**: Individual client conversations can be exported to PDF
-- **Formatting**: Exports include headers, timestamps, and proper formatting
-
-### Security Features
-
-1. **Password Security**: bcrypt hashing with salt rounds
-2. **Session Security**: Secure, HTTP-only cookies
-3. **CSRF Protection**: Tokens on all forms
-4. **Rate Limiting**: Prevents brute force attacks
-5. **Secure Headers**: Helmet.js adds security headers
-6. **Input Validation**: All user inputs are validated and sanitized
-7. **API Key Protection**: Environment variables for sensitive data
-
-### Performance Optimizations
-
-1. **Efficient Queries**: Only fetch required data from Airtable
-2. **Pagination**: Large datasets are paginated (20 items per page)
-3. **Client-side Caching**: Dark mode preference stored in localStorage
-4. **Lazy Loading**: Charts are rendered only when data is available
-5. **Compression**: Response compression for faster page loads
-
-## Tech Stack
-
-- **Backend**: Node.js with Express.js
-- **Frontend**: EJS templates
-- **Database**: Airtable API
-- **Authentication**: Passport.js with local strategy
-- **Session Management**: express-session
-- **Styling**: Tailwind CSS
-- **Charts**: Chart.js
-- **Security**: Helmet.js, bcrypt, rate limiting
-
-## Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-- Airtable account with API access
-- Airtable base with the required structure
-
-## Airtable Structure
-
-### Table 1: Clients
-- `id` (primary, autonumber)
-- `phone_number` (text)
-- `name` (text)
-- `status` (single select: New, Responded, Interested, Closed)
-- `conversation_id` (formula: "CONV-" & YEAR(created_time) & "-" & {id})
-- `created_time` (created time)
-- `Messages` (linked to Messages table)
-
-### Table 2: Messages
-- `id` (primary)
-- `conversation_id` (text)
-- `client` (linked to Clients)
-- `message_text` (long text)
-- `sender` (single select: client, agent)
-- `timestamp` (datetime)
-- `platform` (single select: whatsapp, sms, messenger)
-
-## Installation
-
-### 1. Clone or Download the Project
-
-```bash
-cd "Sevitech node Web"
-```
-
-### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-### 3. Configure Environment Variables
-
-Create a `.env` file in the root directory:
-
-```bash
-cp .env.example .env
-```
-
-Edit the `.env` file with your configuration:
+Set all of these in Vercel → Project → Settings → Environment Variables.
 
 ```env
-# Server Configuration
-PORT=3000
-NODE_ENV=development
+# Server
+NODE_ENV=production
 
-# Session Secret (Generate a strong random string)
-SESSION_SECRET=your-super-secret-session-key-change-this
+# Session (generate with: openssl rand -base64 32)
+SESSION_SECRET=your-random-secret
 
-# Airtable Configuration
-AIRTABLE_API_KEY=your-airtable-api-key
-AIRTABLE_BASE_ID=your-airtable-base-id
-
-# Default Admin Credentials
+# Admin login
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=sevitech2024
+ADMIN_PASSWORD=your-password
 
-# Session Configuration
-SESSION_TIMEOUT=1800000
+# Airtable
+AIRTABLE_API_KEY=pat...
+AIRTABLE_BASE_ID=app...
+
+# n8n Scraper Webhooks (Add new Clients page)
+N8N_WEBHOOK_URL=https://sevitech.site/n8n/webhook/sevitech-scraper
+N8N_WEBHOOK_TEST_URL=https://sevitech.site/n8n/webhook-test/sevitech-scraper
+
+# Outbound Campaign API
+OUTBOUND_API_URL=https://sevitech.site/api/outbound/trigger
+OUTBOUND_API_TEST_URL=https://sevitech.site/n8n/webhook-test/sevitech-outbound-trigger
+OUTBOUND_API_TOKEN=<wa_token from sevitech.site localStorage>
 ```
 
-### 4. Get Airtable Credentials
-
-1. Go to [Airtable Account](https://airtable.com/account)
-2. Generate an API key
-3. Find your Base ID from the API documentation of your base
-4. Update the `.env` file with these credentials
-
-### 5. Start the Server
-
-Development mode (with auto-restart):
-```bash
-npm run dev
-```
-
-Production mode:
-```bash
-npm start
-```
-
-### 6. Access the Dashboard
-
-Open your browser and navigate to:
-```
-http://localhost:3000
-```
-
-Default login credentials:
-- **Username**: admin
-- **Password**: sevitech2024
+---
 
 ## Project Structure
 
 ```
-airtable-dashboard/
 ├── config/
-│   ├── airtable.js          # Airtable configuration
-│   └── passport.js          # Passport authentication setup
+│   ├── airtable.js          # Airtable client + table names
+│   └── passport.js          # Auth: compares against env vars, no DB
 ├── middleware/
-│   ├── auth.js              # Authentication middleware
-│   ├── errorHandler.js      # Error handling middleware
-│   └── rateLimiter.js       # Rate limiting configuration
+│   ├── auth.js              # ensureAuthenticated / forwardAuthenticated
+│   ├── errorHandler.js      # Global error handler
+│   └── rateLimiter.js       # Rate limiting (5 login attempts / 15 min)
 ├── routes/
-│   ├── auth.js              # Authentication routes
-│   ├── dashboard.js         # Dashboard routes
-│   ├── clients.js           # Client management routes
-│   ├── messages.js          # Messages routes
-│   ├── analytics.js         # Analytics routes
-│   └── settings.js          # Settings routes
-├── views/
-│   ├── layouts/
-│   │   └── main.ejs         # Main layout template
-│   ├── partials/
-│   │   ├── header.ejs       # Header component
-│   │   ├── sidebar.ejs      # Sidebar navigation
-│   │   └── footer.ejs       # Footer component
-│   ├── login.ejs            # Login page
-│   ├── dashboard.ejs        # Dashboard home
-│   ├── clients.ejs          # Clients list
-│   ├── client-detail.ejs    # Client detail view
-│   ├── messages.ejs         # Messages view
-│   ├── analytics.ejs        # Analytics page
-│   ├── settings.ejs         # Settings page
-│   └── error.ejs            # Error page
-├── public/
-│   ├── css/
-│   │   └── style.css        # Custom styles
-│   └── js/
-│       └── main.js          # Frontend JavaScript
+│   ├── auth.js              # GET/POST /auth/login, GET /auth/logout
+│   ├── dashboard.js         # GET /dashboard, GET /dashboard/api/stats
+│   ├── clients.js           # CRUD + export routes for /clients
+│   ├── messages.js          # GET /messages + export
+│   ├── analytics.js         # GET /analytics + /analytics/api/data
+│   ├── settings.js          # GET/POST /settings/password
+│   ├── search.js            # GET /search, POST /search/run (scraper proxy)
+│   └── campaign.js          # GET /campaign, POST /campaign/run (API proxy)
 ├── services/
-│   └── airtableService.js   # Airtable API service
+│   └── airtableService.js   # All Airtable read/write operations
 ├── utils/
-│   ├── validators.js        # Input validation
-│   └── helpers.js           # Helper functions
-├── .env                     # Environment variables (create this)
-├── .env.example             # Environment variables template
-├── .gitignore               # Git ignore file
-├── package.json             # Dependencies and scripts
-├── server.js                # Main server file
-└── README.md                # This file
+│   ├── helpers.js           # formatDate, paginate, CSV/PDF export, status colors
+│   └── validators.js        # express-validator rules for login + password change
+├── views/
+│   ├── partials/
+│   │   ├── head.ejs         # <html><head> + opens body+flex container
+│   │   ├── sidebar.ejs      # Navigation sidebar
+│   │   ├── header.ejs       # Top header bar (title, user, theme toggle)
+│   │   ├── content-start.ejs# Opens main content area + flash messages
+│   │   ├── content-end.ejs  # Closes main + inner div
+│   │   └── footer.ejs       # Toast container + main.js + </body></html>
+│   ├── login.ejs            # Standalone login page (no partials)
+│   ├── dashboard.ejs
+│   ├── clients.ejs
+│   ├── client-detail.ejs
+│   ├── messages.ejs
+│   ├── analytics.ejs
+│   ├── settings.ejs
+│   ├── search.ejs           # Add new Clients / scraper form
+│   ├── campaign.ejs         # Outbound Campaign form
+│   └── error.ejs
+├── public/
+│   ├── css/style.css
+│   └── js/main.js           # Sidebar toggle, dark mode, toasts, session timeout
+├── .env                     # Local env vars (not committed)
+├── vercel.json              # Vercel deployment config
+├── package.json
+└── server.js                # App entry point
 ```
 
-## Usage Guide
+---
 
-### Logging In
+## Local Development
 
-1. Navigate to `http://localhost:3000`
-2. Enter your credentials (default: admin/sevitech2024)
-3. Click "Sign In"
-
-### Dashboard
-
-The dashboard provides an overview of your client data:
-- View total clients, new clients today, active conversations, and messages today
-- See a pie chart of client status distribution
-- Monitor recent activity in real-time
-
-### Managing Clients
-
-1. Click "Clients" in the sidebar
-2. Use the search bar to find specific clients
-3. Filter by status using the dropdown
-4. Click on any client row to view full details
-5. Export all clients to CSV using the download button
-
-### Viewing Client Details
-
-1. From the clients list, click on a client
-2. View client information and conversation history
-3. Update client status using the dropdown
-4. Export the conversation as PDF
-
-### Viewing Messages
-
-1. Click "Messages" in the sidebar
-2. Filter by sender (client/agent) or platform
-3. Search within message content
-4. Export filtered messages to CSV
-
-### Analytics
-
-1. Click "Analytics" in the sidebar
-2. Select a date range (7, 30, 90, or 365 days)
-3. View charts showing:
-   - Messages over time
-   - Platform usage
-   - Client status distribution
-   - Sender breakdown
-
-### Settings
-
-1. Click "Settings" in the sidebar
-2. Change your password
-3. View Airtable configuration
-4. Toggle dark mode
-
-### Dark Mode
-
-Toggle dark mode using the moon/sun icon in the header or in Settings.
-
-## API Documentation
-
-### Authentication Endpoints
-
-#### POST /auth/login
-Login with username and password.
-
-**Request Body:**
-```json
-{
-  "username": "admin",
-  "password": "sevitech2024"
-}
+```bash
+npm install
+# create .env with your credentials (see Environment Variables above)
+npm run dev   # starts with nodemon on http://localhost:3000
 ```
 
-#### GET /auth/logout
-Logout the current user.
+Default login: `admin` / `sevitech2024` (or whatever is in your `.env`)
 
-### Dashboard Endpoints
+## Deployment (Vercel)
 
-#### GET /dashboard
-Display the main dashboard.
+The project deploys automatically to Vercel on every push to `main`.
 
-#### GET /dashboard/api/stats
-Get current statistics (for auto-refresh).
-
-**Response:**
-```json
-{
-  "totalClients": 150,
-  "newClientsToday": 5,
-  "activeConversations": 23,
-  "messagesToday": 47,
-  "statusBreakdown": {
-    "New": 20,
-    "Responded": 45,
-    "Interested": 60,
-    "Closed": 25
-  }
-}
+```bash
+git push origin main   # triggers auto-deploy
 ```
 
-### Client Endpoints
+After changing environment variables in Vercel, redeploy manually:
+Vercel → Deployments → Redeploy.
 
-#### GET /clients
-Display clients list with optional filters.
+---
 
-**Query Parameters:**
-- `search` - Search term
-- `status` - Filter by status
-- `page` - Page number (default: 1)
+## Tech Stack
 
-#### GET /clients/:id
-Display client detail view.
-
-#### POST /clients/:id/status
-Update client status.
-
-**Request Body:**
-```json
-{
-  "status": "Interested"
-}
-```
-
-#### GET /clients/export/csv
-Export all clients to CSV.
-
-#### GET /clients/:id/export/pdf
-Export client conversation to PDF.
-
-### Message Endpoints
-
-#### GET /messages
-Display messages list with optional filters.
-
-**Query Parameters:**
-- `search` - Search term
-- `sender` - Filter by sender
-- `platform` - Filter by platform
-- `page` - Page number (default: 1)
-
-#### GET /messages/export/csv
-Export filtered messages to CSV.
-
-### Analytics Endpoints
-
-#### GET /analytics
-Display analytics dashboard.
-
-**Query Parameters:**
-- `range` - Date range in days (default: 30)
-
-#### GET /analytics/api/data
-Get analytics data.
-
-**Query Parameters:**
-- `range` - Date range in days
-
-**Response:**
-```json
-{
-  "messagesOverTime": {
-    "2024-01-01": 15,
-    "2024-01-02": 23
-  },
-  "platformBreakdown": {
-    "whatsapp": 120,
-    "sms": 45,
-    "messenger": 35
-  },
-  "statusBreakdown": {
-    "New": 20,
-    "Responded": 45,
-    "Interested": 60,
-    "Closed": 25
-  },
-  "senderBreakdown": {
-    "client": 150,
-    "agent": 50
-  },
-  "totalMessages": 200,
-  "totalClients": 150
-}
-```
-
-### Settings Endpoints
-
-#### GET /settings
-Display settings page.
-
-#### POST /settings/password
-Change user password.
-
-**Request Body:**
-```json
-{
-  "currentPassword": "oldpassword",
-  "newPassword": "newpassword",
-  "confirmPassword": "newpassword"
-}
-```
-
-## Deployment
-
-### Heroku
-
-1. Create a Heroku account
-2. Install Heroku CLI
-3. Login to Heroku:
-   ```bash
-   heroku login
-   ```
-4. Create a new app:
-   ```bash
-   heroku create your-app-name
-   ```
-5. Set environment variables:
-   ```bash
-   heroku config:set NODE_ENV=production
-   heroku config:set SESSION_SECRET=your-secret
-   heroku config:set AIRTABLE_API_KEY=your-key
-   heroku config:set AIRTABLE_BASE_ID=your-base-id
-   ```
-6. Deploy:
-   ```bash
-   git push heroku main
-   ```
-
-### DigitalOcean
-
-1. Create a Droplet (Ubuntu 20.04)
-2. SSH into your server
-3. Install Node.js and npm
-4. Clone your repository
-5. Install dependencies: `npm install`
-6. Create `.env` file with production values
-7. Install PM2: `npm install -g pm2`
-8. Start the app: `pm2 start server.js --name sevitech-dashboard`
-9. Set up PM2 to start on boot: `pm2 startup && pm2 save`
-
-### Vercel
-
-1. Install Vercel CLI: `npm install -g vercel`
-2. Login: `vercel login`
-3. Deploy: `vercel`
-4. Set environment variables in Vercel dashboard
-
-## Security Best Practices
-
-1. **Change default credentials** immediately after first login
-2. **Use strong session secret** - generate with `openssl rand -base64 32`
-3. **Keep dependencies updated** - run `npm audit` regularly
-4. **Use HTTPS in production** - enable SSL/TLS certificates
-5. **Secure Airtable API key** - never commit to version control
-6. **Enable firewall** - restrict access to necessary ports only
-7. **Regular backups** - backup Airtable data regularly
-8. **Monitor logs** - check for suspicious activity
-
-## Troubleshooting
-
-### Cannot connect to Airtable
-- Verify your API key and Base ID in `.env`
-- Check that your Airtable base has the correct table structure
-- Ensure your API key has read/write permissions
-
-### Session expires too quickly
-- Increase `SESSION_TIMEOUT` in `.env` (value in milliseconds)
-
-### Charts not displaying
-- Ensure Chart.js is loading (check browser console)
-- Verify data is being fetched from Airtable
-
-### Dark mode not persisting
-- Check browser localStorage is enabled
-- Clear browser cache and try again
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-MIT License - feel free to use this project for personal or commercial purposes.
-
-## Support
-
-For issues, questions, or suggestions:
-- Create an issue on GitHub
-- Contact: support@sevitech.com
-
-## Credits
-
-Developed by Sevitech Team
-
-Built with:
-- [Express.js](https://expressjs.com/)
-- [Airtable API](https://airtable.com/api)
-- [Passport.js](http://www.passportjs.org/)
-- [Chart.js](https://www.chartjs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-
-## Changelog
-
-### Version 1.1.0 (2026-01-14)
-- Enhanced dashboard with integrated analytics section
-- Simplified theme toggle button (icon-only design)
-- Improved mobile responsiveness across all pages
-- Updated sidebar with collapsible navigation
-- Fixed WhatsApp message styling in dark mode
-- Added comprehensive "How It Works" documentation
-- Performance optimizations and bug fixes
-
-### Version 1.0.0 (2024-01-13)
-- Initial release
-- Complete authentication system
-- Dashboard with real-time stats
-- Client management
-- Message viewing
-- Analytics with charts
-- Export to CSV/PDF
-- Dark mode support
-- Responsive design
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js ≥ 20 |
+| Framework | Express.js 4 |
+| Templates | EJS |
+| Styling | Tailwind CSS (CDN) |
+| Charts | Chart.js |
+| Auth | Passport.js (local strategy) |
+| Sessions | cookie-session (client-side, stateless) |
+| Database | Airtable API |
+| Icons | Font Awesome 6.5 |
+| PDF export | PDFKit |
+| CSV export | json2csv |
+| Security | Helmet.js, express-rate-limit |
+| Hosting | Vercel (serverless) |
+| Automation | n8n (self-hosted at sevitech.site) |
