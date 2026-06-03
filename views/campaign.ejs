@@ -91,16 +91,14 @@
 
 <script>
 (function () {
-  var API_URL      = '<%= outboundApiUrl %>';
-  var API_TEST_URL = '<%= outboundApiTestUrl %>';
-
   document.getElementById('campaign-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var category = document.getElementById('category').value;
-    var limit    = parseInt(document.getElementById('limit').value) || 20;
-    var message  = document.getElementById('message').value.trim();
+    var category  = document.getElementById('category').value;
+    var limit     = parseInt(document.getElementById('limit').value) || 20;
+    var message   = document.getElementById('message').value.trim();
+    var test_mode = document.getElementById('test_mode').checked;
 
     if (limit < 1 || limit > 200) {
       showStatus('Please enter a number between 1 and 200.', 'error');
@@ -111,34 +109,20 @@
       return;
     }
 
-    var testMode = document.getElementById('test_mode').checked;
-    var url = (testMode && API_TEST_URL) ? API_TEST_URL : API_URL;
-
-    var token = localStorage.getItem('wa_token');
-    if (!token) {
-      showStatus('No auth token found in localStorage (wa_token). Please log in to the main dashboard first.', 'error');
-      return;
-    }
-
     setLoading(true);
     hideStatus();
 
     try {
-      var payload = { message: message, limit: limit };
-      if (category) payload.category = category;
-
-      var res = await fetch(url, {
+      var res = await fetch('/campaign/run', {
         method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ category: category, limit: limit, message: message, test_mode: String(test_mode) })
       });
 
-      if (!res.ok) {
-        var errText = await res.text().catch(function() { return ''; });
-        showStatus('Error ' + res.status + (errText ? ': ' + errText : ''), 'error');
+      var data = await res.json();
+
+      if (!data.ok) {
+        showStatus('Error: ' + (data.error || 'Unknown error'), 'error');
         return;
       }
 
