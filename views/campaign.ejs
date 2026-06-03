@@ -83,6 +83,8 @@
 
 <script>
 (function () {
+  var API_URL = '<%= outboundApiUrl %>';
+
   document.getElementById('campaign-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     e.stopPropagation();
@@ -100,31 +102,43 @@
       return;
     }
 
+    var token = localStorage.getItem('wa_token');
+    if (!token) {
+      showStatus('No auth token found in localStorage (wa_token). Please log in to the main dashboard first.', 'error');
+      return;
+    }
+
     setLoading(true);
     hideStatus();
 
     try {
-      var res = await fetch('/campaign/run', {
+      var payload = { message: message, limit: limit };
+      if (category) payload.category = category;
+
+      var res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ category: category, limit: limit, message: message })
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
       });
 
-      var data = await res.json();
-
-      if (data.ok) {
-        var categoryLabel = data.category
-          ? data.category.charAt(0).toUpperCase() + data.category.slice(1).replace('_', ' ')
-          : 'all categories';
-        showStatus(
-          '<i class="fab fa-whatsapp mr-2"></i>Campaign started — <strong>' + data.limit + ' messages</strong> will be sent to leads in <strong>' + categoryLabel + '</strong>.',
-          'success'
-        );
-      } else {
-        showStatus('Error: ' + (data.error || 'Unknown error'), 'error');
+      if (!res.ok) {
+        var errText = await res.text().catch(function() { return ''; });
+        showStatus('Error ' + res.status + (errText ? ': ' + errText : ''), 'error');
+        return;
       }
+
+      var categoryLabel = category
+        ? category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')
+        : 'all categories';
+      showStatus(
+        '<i class="fab fa-whatsapp mr-2"></i>Campaign started — <strong>' + limit + ' messages</strong> will be sent to leads in <strong>' + categoryLabel + '</strong>.',
+        'success'
+      );
     } catch (err) {
-      showStatus('Network error — could not reach the server.', 'error');
+      showStatus('Network error — could not reach ' + API_URL, 'error');
     } finally {
       setLoading(false);
     }
