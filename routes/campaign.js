@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth');
 
-const CAMPAIGN_WEBHOOK_URL = process.env.N8N_CAMPAIGN_WEBHOOK_URL;
+const OUTBOUND_API_URL   = process.env.OUTBOUND_API_URL;
+const OUTBOUND_API_TOKEN = process.env.OUTBOUND_API_TOKEN;
 
 router.get('/', ensureAuthenticated, (req, res) => {
   res.render('campaign', { title: 'Outbound Campaign' });
@@ -10,30 +11,44 @@ router.get('/', ensureAuthenticated, (req, res) => {
 
 router.post('/run', ensureAuthenticated, async (req, res) => {
   try {
-    const { category, limit } = req.body;
-
-    if (!CAMPAIGN_WEBHOOK_URL) {
-      return res.status(500).json({ ok: false, error: 'Campaign webhook URL not configured. Set N8N_CAMPAIGN_WEBHOOK_URL in environment variables.' });
+    if (!OUTBOUND_API_URL) {
+      return res.status(500).json({ ok: false, error: 'OUTBOUND_API_URL not set in environment variables.' });
+    }
+    if (!OUTBOUND_API_TOKEN) {
+      return res.status(500).json({ ok: false, error: 'OUTBOUND_API_TOKEN not set in environment variables.' });
     }
 
-    const payload = { limit: parseInt(limit) || 20 };
-    if (category) payload.category = category;
+    const { category, limit, message } = req.body;
 
-    const response = await fetch(CAMPAIGN_WEBHOOK_URL, {
+    if (!message || !message.trim()) {
+      return res.status(400).json({ ok: false, error: 'Message cannot be empty.' });
+    }
+
+    const payload = {
+      limit:    parseInt(limit) || 20,
+      category: category || '',
+      message:  message.trim()
+    };
+
+    const response = await fetch(OUTBOUND_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${OUTBOUND_API_TOKEN}`
+      },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(15000)
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({ ok: false, error: `Webhook returned ${response.status}` });
+      const text = await response.text().catch(() => '');
+      return res.status(response.status).json({ ok: false, error: `API returned ${response.status}${text ? ': ' + text : ''}` });
     }
 
-    res.json({ ok: true, limit: payload.limit, category: payload.category || null });
+    res.json({ ok: true, limit: payload.limit, category: payload.category });
   } catch (error) {
-    console.error('Campaign webhook error:', error);
-    res.status(500).json({ ok: false, error: error.message || 'Failed to reach webhook' });
+    console.error('Campaign API error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to reach API' });
   }
 });
 

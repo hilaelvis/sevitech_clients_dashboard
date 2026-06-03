@@ -3,14 +3,12 @@
 
 <div class="max-w-xl mx-auto">
 
-  <!-- Page description -->
   <div class="mb-6">
     <h3 class="text-lg text-gray-500 dark:text-gray-400">
       Send a first-contact WhatsApp message to leads with status <strong class="text-gray-700 dark:text-gray-300">New</strong>, filtered by category. Messages are sent via <strong class="text-gray-700 dark:text-gray-300">+39 3510218513</strong> with a 30-second delay between each.
     </h3>
   </div>
 
-  <!-- Card -->
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 
     <form id="campaign-form" novalidate>
@@ -34,7 +32,7 @@
       </div>
 
       <!-- Limit -->
-      <div class="mb-6">
+      <div class="mb-5">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           <i class="fas fa-paper-plane mr-2 text-gray-400"></i>How many to send
         </label>
@@ -44,19 +42,30 @@
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 200 per campaign run.</p>
       </div>
 
+      <!-- Message -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <i class="fab fa-whatsapp mr-2 text-gray-400"></i>Message
+        </label>
+        <textarea id="message" name="message" rows="6"
+          placeholder="Write your WhatsApp message here…"
+          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm resize-y"></textarea>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This exact text will be sent to each lead.</p>
+      </div>
+
       <!-- Warning banner -->
       <div class="mb-6 flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg px-4 py-3">
         <i class="fas fa-triangle-exclamation text-yellow-500 mt-0.5 flex-shrink-0"></i>
         <p class="text-xs text-yellow-700 dark:text-yellow-300">
-          This will send real WhatsApp messages to leads. Make sure the message template and number are correctly configured in n8n before running.
+          This will send real WhatsApp messages to leads. Double-check the message text before launching.
         </p>
       </div>
 
       <!-- Submit -->
       <button type="submit" id="submit-btn"
-        class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center space-x-2">
+        class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2">
         <i class="fab fa-whatsapp text-lg" id="btn-icon"></i>
-        <span id="btn-text">Send Campaign</span>
+        <span id="btn-text">Launch Campaign</span>
       </button>
 
     </form>
@@ -67,7 +76,7 @@
     <!-- Info note -->
     <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-start gap-3 text-xs text-gray-500 dark:text-gray-400">
       <i class="fas fa-info-circle mt-0.5 flex-shrink-0"></i>
-      <span>n8n processes the campaign in the background. With a 30-second delay between messages, sending 20 messages takes ~10 minutes. Only leads with status <strong>New</strong> are targeted.</span>
+      <span>Campaign runs in the background. With a 30-second delay between messages, sending 20 messages takes ~10 minutes. Only leads with status <strong>New</strong> are targeted.</span>
     </div>
   </div>
 </div>
@@ -80,9 +89,14 @@
 
     var category = document.getElementById('category').value;
     var limit    = parseInt(document.getElementById('limit').value) || 20;
+    var message  = document.getElementById('message').value.trim();
 
     if (limit < 1 || limit > 200) {
       showStatus('Please enter a number between 1 and 200.', 'error');
+      return;
+    }
+    if (!message) {
+      showStatus('Please enter a message before launching.', 'error');
       return;
     }
 
@@ -90,13 +104,10 @@
     hideStatus();
 
     try {
-      var body = { limit: limit };
-      if (category) body.category = category;
-
       var res = await fetch('/campaign/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ category: category, limit: limit, message: message })
       });
 
       var data = await res.json();
@@ -125,7 +136,7 @@
     var text = document.getElementById('btn-text');
     btn.disabled = loading;
     icon.className = loading ? 'fas fa-spinner fa-spin' : 'fab fa-whatsapp text-lg';
-    text.textContent = loading ? 'Sending campaign…' : 'Send Campaign';
+    text.textContent = loading ? 'Launching campaign…' : 'Launch Campaign';
     btn.classList.toggle('opacity-75', loading);
   }
 
