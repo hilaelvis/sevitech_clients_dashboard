@@ -11,16 +11,18 @@ router.get('/', ensureAuthenticated, (req, res) => {
 
 router.post('/run', ensureAuthenticated, async (req, res) => {
   try {
-    const { maps_url, keywords, location, max_results, test_mode } = req.body;
+    const { maps_url, keywords, location, max_results, test_mode, city, category } = req.body;
 
     if (!maps_url && !keywords) {
       return res.status(400).json({ ok: false, error: 'Provide at least a Maps URL or keywords.' });
     }
 
     const payload = { max_results: parseInt(max_results) || 50 };
-    if (maps_url) payload.maps_url = maps_url.trim();
-    if (keywords) payload.keywords = keywords.trim();
-    if (location) payload.location = location.trim();
+    if (maps_url)  payload.maps_url  = maps_url.trim();
+    if (keywords)  payload.keywords  = keywords.trim();
+    if (location)  payload.location  = location.trim();
+    if (city)      payload.city      = city.trim();
+    if (category)  payload.category  = category.trim();
 
     const url = test_mode === 'true' ? WEBHOOK_TEST_URL : WEBHOOK_URL;
 

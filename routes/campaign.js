@@ -16,7 +16,7 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       return res.status(500).json({ ok: false, error: 'OUTBOUND_API_TOKEN not set in environment variables.' });
     }
 
-    const { category, limit, message, test_mode } = req.body;
+    const { category, city, limit, message, test_mode } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({ ok: false, error: 'Message cannot be empty.' });
@@ -27,6 +27,7 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
     const payload = {
       limit:    parseInt(limit) || 20,
       category: category || '',
+      city:     city || '',
       message:  message.trim()
     };
 

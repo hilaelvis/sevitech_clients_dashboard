@@ -59,6 +59,33 @@
         </div>
       </div>
 
+      <!-- City + Category tag (apply to all results from this scrape) -->
+      <div class="flex gap-4 mb-4">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            City <span class="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input type="text" id="city" name="city"
+            placeholder="e.g. Milano"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
+        </div>
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Category <span class="text-gray-400 font-normal">(optional — overrides auto-detect)</span>
+          </label>
+          <select id="category_tag" name="category_tag"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
+            <option value="">Auto-detect</option>
+            <option value="restaurant">Restaurant</option>
+            <option value="hotel">Hotel</option>
+            <option value="cleaning">Cleaning</option>
+            <option value="clinic">Clinic</option>
+            <option value="real_estate">Real Estate</option>
+            <option value="generic">Generic</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Max results + test mode -->
       <div class="flex items-end gap-4 mb-6">
         <div class="w-36">
@@ -114,11 +141,13 @@
     e.preventDefault();
     e.stopPropagation();
 
-    var keywords   = document.getElementById('keywords').value.trim();
-    var location   = document.getElementById('location').value.trim();
-    var maps_url   = document.getElementById('maps_url').value.trim();
+    var keywords    = document.getElementById('keywords').value.trim();
+    var location    = document.getElementById('location').value.trim();
+    var maps_url    = document.getElementById('maps_url').value.trim();
     var max_results = document.getElementById('max_results').value;
-    var test_mode  = document.getElementById('test_mode').checked;
+    var test_mode   = document.getElementById('test_mode').checked;
+    var city        = document.getElementById('city').value.trim();
+    var category_tag = document.getElementById('category_tag').value;
 
     if (currentTab === 'keywords' && !keywords) { showStatus('Please enter at least one keyword.', 'error'); return; }
     if (currentTab === 'maps'     && !maps_url)  { showStatus('Please enter a Google Maps URL.', 'error');  return; }
@@ -130,6 +159,8 @@
       var body = { max_results: max_results, test_mode: String(test_mode) };
       if (currentTab === 'keywords') { body.keywords = keywords; if (location) body.location = location; }
       if (currentTab === 'maps')     { body.maps_url = maps_url; }
+      if (city)         body.city = city;
+      if (category_tag) body.category = category_tag;
 
       var res = await fetch('/search/run', {
         method: 'POST',
@@ -145,6 +176,8 @@
         document.getElementById('location').value = '';
         document.getElementById('maps_url').value = '';
         document.getElementById('max_results').value = '50';
+        document.getElementById('city').value = '';
+        document.getElementById('category_tag').value = '';
       } else {
         showStatus('Error: ' + (data.error || 'Unknown error'), 'error');
       }
