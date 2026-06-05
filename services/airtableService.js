@@ -9,7 +9,7 @@ const mapClient = (record) => ({
   phone: record.get('phone'),
   website: record.get('website'),
   email: record.get('email'),
-  city: record.get('city'),
+  city: record.get('City'),
   address: record.get('address'),
   rating: record.get('rating'),
   facebook: record.get('facebook'),
@@ -44,7 +44,7 @@ class AirtableService {
       }
 
       if (filters.city) {
-        filterConditions.push(`SEARCH(LOWER('${filters.city.toLowerCase()}'), LOWER({city}))`);
+        filterConditions.push(`SEARCH(LOWER('${filters.city.toLowerCase()}'), LOWER({City}))`);
       }
 
       if (filters.date_range) {
