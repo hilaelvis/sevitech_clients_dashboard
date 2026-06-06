@@ -140,17 +140,17 @@
   document.getElementById('tab-maps').addEventListener('click', function () { switchTab('maps'); });
 
   // ── Live polling state ──────────────────────────────────────────────────────
-  var poll = { city: '', category: '', since: '', lastCount: 0, stableRuns: 0, timer: null, tick: 0 };
+  var poll = { city: '', category: '', baseline: 0, lastDelta: 0, stableRuns: 0, timer: null, tick: 0 };
 
-  function startPolling(city, category, since) {
+  function startPolling(city, category, baseline) {
     stopPolling();
-    poll.city = city; poll.category = category; poll.since = since;
-    poll.lastCount = 0; poll.stableRuns = 0; poll.tick = 0;
+    poll.city = city; poll.category = category; poll.baseline = baseline || 0;
+    poll.lastDelta = 0; poll.stableRuns = 0; poll.tick = 0;
     document.getElementById('live-panel').classList.remove('hidden');
     setLiveStatus(0, false);
-    // First check after 6 s, then every 9 s
-    setTimeout(doPoll, 6000);
-    poll.timer = setInterval(doPoll, 9000);
+    // First check after 15 s (give n8n time to start), then every 12 s
+    setTimeout(doPoll, 15000);
+    poll.timer = setInterval(doPoll, 12000);
   }
 
   function stopPolling() {
@@ -160,17 +160,17 @@
   async function doPoll() {
     poll.tick++;
     try {
-      var p = new URLSearchParams({ since: poll.since });
+      var p = new URLSearchParams();
       if (poll.city)     p.set('city', poll.city);
       if (poll.category) p.set('category', poll.category);
       var r = await fetch('/search/poll?' + p.toString(), { headers: { Accept: 'application/json' } });
       var d = await r.json();
       if (!d.ok) return;
-      var n = d.count;
-      if (n === poll.lastCount) { poll.stableRuns++; } else { poll.stableRuns = 0; poll.lastCount = n; }
-      // Done: stable for 3 polls after at least one result, or stable 5 polls, or 5-min timeout
-      var done = (poll.stableRuns >= 3 && n > 0) || poll.stableRuns >= 5 || poll.tick >= 34;
-      setLiveStatus(n, done);
+      var delta = Math.max(0, d.count - poll.baseline);
+      if (delta === poll.lastDelta) { poll.stableRuns++; } else { poll.stableRuns = 0; poll.lastDelta = delta; }
+      // Done: stable for 3 polls after at least one new record, or stable 5 polls regardless, or 6-min timeout
+      var done = (poll.stableRuns >= 3 && delta > 0) || poll.stableRuns >= 5 || poll.tick >= 30;
+      setLiveStatus(delta, done);
       if (done) stopPolling();
     } catch (_) { /* ignore transient errors */ }
   }
@@ -218,7 +218,6 @@
     document.getElementById('live-panel').classList.add('hidden');
 
     try {
-      var since = new Date().toISOString();
       var body = { max_results: max_results, test_mode: String(test_mode) };
       if (currentTab === 'keywords') { body.keywords = keywords; if (city) body.location = city; }
       if (currentTab === 'maps')     { body.maps_url = maps_url; }
@@ -239,7 +238,7 @@
         document.getElementById('max_results').value = '50';
         document.getElementById('city').value = '';
         document.getElementById('category_tag').value = '';
-        startPolling(city, category_tag, since);
+        startPolling(city, category_tag, data.baseline);
       } else {
         showStatus('Error: ' + (data.error || 'Unknown error'), 'error');
       }

@@ -195,15 +195,17 @@ class AirtableService {
     }
   }
 
-  // Count records created after `since` (ISO string), optionally filtered by city/category
-  async countClientsSince(city, category, since) {
+  // Count all records matching city/category (used for baseline + delta comparisons)
+  async countClients(city, category) {
     const s = (v) => String(v).replace(/["\\]/g, '');
-    const conditions = [`IS_AFTER(CREATED_TIME(), DATETIME_PARSE("${s(since)}"))`];
+    const conditions = [];
     if (city)     conditions.push(`LOWER({City}) = LOWER("${s(city)}")`);
     if (category) conditions.push(`LOWER({category}) = LOWER("${s(category)}")`);
-    const formula = conditions.length === 1 ? conditions[0] : `AND(${conditions.join(',')})`;
+    const formula = conditions.length === 0 ? '' : conditions.length === 1 ? conditions[0] : `AND(${conditions.join(',')})`;
+    const opts = { fields: ['business_name'] };
+    if (formula) opts.filterByFormula = formula;
     let count = 0;
-    await base(TABLES.CLIENTS).select({ filterByFormula: formula, fields: ['business_name'] })
+    await base(TABLES.CLIENTS).select(opts)
       .eachPage((records, next) => { count += records.length; next(); });
     return count;
   }

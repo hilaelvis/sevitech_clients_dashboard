@@ -31,6 +31,12 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       return res.status(500).json({ ok: false, error: 'Webhook URL not configured. Set N8N_WEBHOOK_URL in environment variables.' });
     }
 
+    // Snapshot current count before triggering — frontend uses delta to track new records
+    let baseline = null;
+    try {
+      baseline = await airtableService.countClients(city || '', category || '');
+    } catch (_) { /* non-fatal */ }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,7 +48,7 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       return res.status(response.status).json({ ok: false, error: `Webhook returned ${response.status}` });
     }
 
-    res.json({ ok: true });
+    res.json({ ok: true, baseline, city: city || '', category: category || '' });
   } catch (error) {
     console.error('Scraper webhook error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to reach webhook' });
@@ -51,9 +57,8 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
 
 router.get('/poll', ensureAuthenticated, async (req, res) => {
   try {
-    const { city, category, since } = req.query;
-    if (!since) return res.status(400).json({ ok: false, error: 'since is required' });
-    const count = await airtableService.countClientsSince(city || '', category || '', since);
+    const { city, category } = req.query;
+    const count = await airtableService.countClients(city || '', category || '');
     res.json({ ok: true, count });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
