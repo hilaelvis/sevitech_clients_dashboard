@@ -197,10 +197,10 @@ class AirtableService {
 
   // Count all records matching city/category (used for baseline + delta comparisons)
   async countClients(city, category) {
-    const s = (v) => String(v).replace(/["\\]/g, '');
+    const s = (v) => String(v).replace(/['\\]/g, '');
     const conditions = [];
-    if (city)     conditions.push(`LOWER({City}) = LOWER("${s(city)}")`);
-    if (category) conditions.push(`LOWER({category}) = LOWER("${s(category)}")`);
+    if (city)     conditions.push(`LOWER({City}) = LOWER('${s(city)}')`);
+    if (category) conditions.push(`LOWER({category}) = LOWER('${s(category)}')`);
     const formula = conditions.length === 0 ? '' : conditions.length === 1 ? conditions[0] : `AND(${conditions.join(',')})`;
     const opts = { fields: ['business_name'] };
     if (formula) opts.filterByFormula = formula;
@@ -212,10 +212,10 @@ class AirtableService {
 
   // Count records with a given Status value, optionally filtered by city/category
   async countLeadsByStatus(city, category, statusValue) {
-    const s = (v) => String(v).replace(/["\\]/g, '');
-    const conditions = [`{Status} = "${s(statusValue)}"`];
-    if (city)     conditions.push(`LOWER({City}) = LOWER("${s(city)}")`);
-    if (category) conditions.push(`LOWER({category}) = LOWER("${s(category)}")`);
+    const s = (v) => String(v).replace(/['\\]/g, '');
+    const conditions = [`{Status} = '${s(statusValue)}'`];
+    if (city)     conditions.push(`LOWER({City}) = LOWER('${s(city)}')`);
+    if (category) conditions.push(`LOWER({category}) = LOWER('${s(category)}')`);
     const formula = conditions.length === 1 ? conditions[0] : `AND(${conditions.join(',')})`;
     let count = 0;
     await base(TABLES.CLIENTS).select({ filterByFormula: formula, fields: ['business_name'] })
