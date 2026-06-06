@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth');
-const airtableService = require('../services/airtableService');
+const { countN8nRecords } = require('../services/n8nAirtable');
 
 const OUTBOUND_API_URL      = process.env.OUTBOUND_API_URL      || 'https://sevitech.site/api/outbound/trigger';
 const OUTBOUND_API_TEST_URL = process.env.OUTBOUND_API_TEST_URL || '';
@@ -32,11 +32,11 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       message:  message.trim()
     };
 
-    // Snapshot how many New leads exist before triggering — used for live progress tracking
+    // Snapshot how many New leads exist in n8n's base before triggering
     let baseline = null;
     try {
-      baseline = await airtableService.countLeadsByStatus(payload.city, payload.category, 'New');
-    } catch (_) { /* non-fatal — polling still works without baseline */ }
+      baseline = await countN8nRecords(payload.city, payload.category, 'New');
+    } catch (_) { /* non-fatal */ }
 
     const response = await fetch(url, {
       method: 'POST',
@@ -63,7 +63,7 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
 router.get('/poll', ensureAuthenticated, async (req, res) => {
   try {
     const { city, category } = req.query;
-    const count = await airtableService.countLeadsByStatus(city || '', category || '', 'New');
+    const count = await countN8nRecords(city || '', category || '', 'New');
     res.json({ ok: true, new_count: count });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });

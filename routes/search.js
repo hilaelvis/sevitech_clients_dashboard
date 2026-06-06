@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth');
-const airtableService = require('../services/airtableService');
+const { countN8nRecords } = require('../services/n8nAirtable');
 
 const WEBHOOK_URL      = process.env.N8N_WEBHOOK_URL;
 const WEBHOOK_TEST_URL = process.env.N8N_WEBHOOK_TEST_URL;
@@ -31,10 +31,10 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       return res.status(500).json({ ok: false, error: 'Webhook URL not configured. Set N8N_WEBHOOK_URL in environment variables.' });
     }
 
-    // Snapshot current count before triggering — frontend uses delta to track new records
+    // Snapshot current record count in n8n's base before triggering
     let baseline = null;
     try {
-      baseline = await airtableService.countClients(city || '', category || '');
+      baseline = await countN8nRecords(city || '', category || '', null);
     } catch (_) { /* non-fatal */ }
 
     const response = await fetch(url, {
@@ -58,7 +58,7 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
 router.get('/poll', ensureAuthenticated, async (req, res) => {
   try {
     const { city, category } = req.query;
-    const count = await airtableService.countClients(city || '', category || '');
+    const count = await countN8nRecords(city || '', category || '', null);
     res.json({ ok: true, count });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
