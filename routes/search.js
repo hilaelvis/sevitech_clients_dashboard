@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth');
+const airtableService = require('../services/airtableService');
 
 const WEBHOOK_URL      = process.env.N8N_WEBHOOK_URL;
 const WEBHOOK_TEST_URL = process.env.N8N_WEBHOOK_TEST_URL;
@@ -45,6 +46,17 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     console.error('Scraper webhook error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to reach webhook' });
+  }
+});
+
+router.get('/poll', ensureAuthenticated, async (req, res) => {
+  try {
+    const { city, category, since } = req.query;
+    if (!since) return res.status(400).json({ ok: false, error: 'since is required' });
+    const count = await airtableService.countClientsSince(city || '', category || '', since);
+    res.json({ ok: true, count });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
   }
 });
 

@@ -89,8 +89,24 @@
 
     </form>
 
-    <!-- Status message -->
+    <!-- Submit error message -->
     <div id="status-msg" class="hidden mt-4 px-4 py-3 rounded-lg text-sm"></div>
+
+    <!-- Live campaign progress (shown after successful trigger) -->
+    <div id="live-panel" class="hidden mt-4">
+      <!-- Progress bar -->
+      <div class="mb-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <span id="live-label">Campaign running…</span>
+        <span id="live-fraction"></span>
+      </div>
+      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
+        <div id="live-bar" class="bg-green-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div>
+      </div>
+      <div id="live-status" class="px-4 py-3 rounded-lg text-sm"></div>
+      <div class="mt-2 text-xs text-gray-400 dark:text-gray-500 text-right">
+        <a href="#" id="stop-watching" class="hover:underline">stop watching</a>
+      </div>
+    </div>
 
     <!-- Info note -->
     <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-start gap-3 text-xs text-gray-500 dark:text-gray-400">
@@ -102,6 +118,78 @@
 
 <script>
 (function () {
+  // ── Live polling state ──────────────────────────────────────────────────────
+  var poll = { city: '', category: '', baseline: null, limit: 0, timer: null, stableRuns: 0, lastSent: -1, tick: 0 };
+
+  function startPolling(city, category, baseline, limit) {
+    stopPolling();
+    poll.city = city; poll.category = category; poll.baseline = baseline;
+    poll.limit = limit; poll.stableRuns = 0; poll.lastSent = 0; poll.tick = 0;
+    document.getElementById('live-panel').classList.remove('hidden');
+    setLiveStatus(0, false);
+    // First check after 35 s (one message interval), then every 32 s
+    setTimeout(doPoll, 35000);
+    poll.timer = setInterval(doPoll, 32000);
+  }
+
+  function stopPolling() {
+    if (poll.timer) { clearInterval(poll.timer); poll.timer = null; }
+  }
+
+  async function doPoll() {
+    poll.tick++;
+    try {
+      var p = new URLSearchParams();
+      if (poll.city)     p.set('city', poll.city);
+      if (poll.category) p.set('category', poll.category);
+      var r = await fetch('/campaign/poll?' + p.toString(), { headers: { Accept: 'application/json' } });
+      var d = await r.json();
+      if (!d.ok) return;
+
+      var sent = poll.baseline !== null ? Math.max(0, poll.baseline - d.new_count) : null;
+      if (sent === poll.lastSent) { poll.stableRuns++; } else { poll.stableRuns = 0; poll.lastSent = sent; }
+
+      var done = (sent !== null && sent >= poll.limit) || poll.stableRuns >= 4 || poll.tick >= 40;
+      setLiveStatus(sent, done);
+      if (done) stopPolling();
+    } catch (_) { /* ignore */ }
+  }
+
+  function setLiveStatus(sent, done) {
+    var bar      = document.getElementById('live-bar');
+    var label    = document.getElementById('live-label');
+    var fraction = document.getElementById('live-fraction');
+    var statusEl = document.getElementById('live-status');
+    var limit    = poll.limit;
+    var pct      = (sent !== null && limit > 0) ? Math.min(100, Math.round(sent / limit * 100)) : 0;
+
+    bar.style.width = pct + '%';
+    fraction.textContent = sent !== null ? (sent + ' / ' + limit) : ('0 / ' + limit);
+
+    if (done) {
+      bar.classList.replace('bg-green-500', 'bg-blue-500');
+      label.textContent = 'Campaign finished';
+      var finalSent = sent !== null ? sent : limit;
+      statusEl.className = 'px-4 py-3 rounded-lg text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800';
+      statusEl.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Done! <strong>' + finalSent + ' message' + (finalSent === 1 ? '' : 's') + '</strong> delivered.';
+    } else {
+      label.textContent = 'Campaign running…';
+      statusEl.className = 'px-4 py-3 rounded-lg text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800';
+      if (sent === null || sent === 0) {
+        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Warming up — first message sending now&hellip;';
+      } else {
+        statusEl.innerHTML = '<i class="fab fa-whatsapp mr-2"></i>Sending&hellip; <strong>' + sent + ' of ' + limit + '</strong> messages delivered.';
+      }
+    }
+  }
+
+  document.getElementById('stop-watching').addEventListener('click', function (e) {
+    e.preventDefault();
+    stopPolling();
+    document.getElementById('live-panel').classList.add('hidden');
+  });
+
+  // ── Form submit ─────────────────────────────────────────────────────────────
   document.getElementById('campaign-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     e.stopPropagation();
@@ -123,6 +211,8 @@
 
     setLoading(true);
     hideStatus();
+    stopPolling();
+    document.getElementById('live-panel').classList.add('hidden');
 
     try {
       var res = await fetch('/campaign/run', {
@@ -138,12 +228,7 @@
         return;
       }
 
-      var categoryLabel = category ? category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ') : 'all categories';
-      var cityLabel = city ? ' in <strong>' + city + '</strong>' : '';
-      showStatus(
-        '<i class="fab fa-whatsapp mr-2"></i>Campaign started — <strong>' + limit + ' messages</strong> will be sent to leads in <strong>' + categoryLabel + '</strong>' + cityLabel + '.',
-        'success'
-      );
+      startPolling(city, category, data.baseline, limit);
     } catch (err) {
       showStatus('Network error — could not reach the API.', 'error');
     } finally {

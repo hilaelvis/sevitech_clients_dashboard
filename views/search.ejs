@@ -105,13 +105,21 @@
 
     </form>
 
-    <!-- Status message -->
+    <!-- Submit error message -->
     <div id="status-msg" class="hidden mt-4 px-4 py-3 rounded-lg text-sm"></div>
+
+    <!-- Live scraping progress (shown after successful trigger) -->
+    <div id="live-panel" class="hidden mt-4">
+      <div id="live-status" class="px-4 py-3 rounded-lg text-sm"></div>
+      <div class="mt-2 text-xs text-gray-400 dark:text-gray-500 text-right">
+        <a href="#" id="stop-watching" class="hover:underline">stop watching</a>
+      </div>
+    </div>
 
     <!-- Info note -->
     <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-start gap-3 text-xs text-gray-500 dark:text-gray-400">
       <i class="fas fa-info-circle mt-0.5 flex-shrink-0"></i>
-      <span>Scraping runs in the background and takes <strong>1–3 minutes</strong> depending on result count. New clients will appear in the <a href="/clients" class="text-blue-500 hover:underline">Clients page</a> automatically — no need to wait here.</span>
+      <span>Scraping runs in the background and takes <strong>1–3 minutes</strong> depending on result count. New clients will appear in the <a href="/clients" class="text-blue-500 hover:underline">Clients page</a> automatically.</span>
     </div>
   </div>
 </div>
@@ -131,6 +139,65 @@
   document.getElementById('tab-keywords').addEventListener('click', function () { switchTab('keywords'); });
   document.getElementById('tab-maps').addEventListener('click', function () { switchTab('maps'); });
 
+  // ── Live polling state ──────────────────────────────────────────────────────
+  var poll = { city: '', category: '', since: '', lastCount: 0, stableRuns: 0, timer: null, tick: 0 };
+
+  function startPolling(city, category, since) {
+    stopPolling();
+    poll.city = city; poll.category = category; poll.since = since;
+    poll.lastCount = 0; poll.stableRuns = 0; poll.tick = 0;
+    document.getElementById('live-panel').classList.remove('hidden');
+    setLiveStatus(0, false);
+    // First check after 6 s, then every 9 s
+    setTimeout(doPoll, 6000);
+    poll.timer = setInterval(doPoll, 9000);
+  }
+
+  function stopPolling() {
+    if (poll.timer) { clearInterval(poll.timer); poll.timer = null; }
+  }
+
+  async function doPoll() {
+    poll.tick++;
+    try {
+      var p = new URLSearchParams({ since: poll.since });
+      if (poll.city)     p.set('city', poll.city);
+      if (poll.category) p.set('category', poll.category);
+      var r = await fetch('/search/poll?' + p.toString(), { headers: { Accept: 'application/json' } });
+      var d = await r.json();
+      if (!d.ok) return;
+      var n = d.count;
+      if (n === poll.lastCount) { poll.stableRuns++; } else { poll.stableRuns = 0; poll.lastCount = n; }
+      // Done: stable for 3 polls after at least one result, or stable 5 polls, or 5-min timeout
+      var done = (poll.stableRuns >= 3 && n > 0) || poll.stableRuns >= 5 || poll.tick >= 34;
+      setLiveStatus(n, done);
+      if (done) stopPolling();
+    } catch (_) { /* ignore transient errors */ }
+  }
+
+  function setLiveStatus(count, done) {
+    var el = document.getElementById('live-status');
+    if (done) {
+      if (count > 0) {
+        el.className = 'px-4 py-3 rounded-lg text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800';
+        el.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Done! <strong>' + count + ' new client' + (count === 1 ? '' : 's') + '</strong> added to Airtable. <a href="/clients" class="underline font-medium ml-1">View clients</a>';
+      } else {
+        el.className = 'px-4 py-3 rounded-lg text-sm bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800';
+        el.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Scraping finished — no new records found (all results may already exist in Airtable).';
+      }
+    } else {
+      el.className = 'px-4 py-3 rounded-lg text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800';
+      el.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Scraping in progress&hellip; <strong>' + count + ' new client' + (count === 1 ? '' : 's') + '</strong> found so far.';
+    }
+  }
+
+  document.getElementById('stop-watching').addEventListener('click', function (e) {
+    e.preventDefault();
+    stopPolling();
+    document.getElementById('live-panel').classList.add('hidden');
+  });
+
+  // ── Form submit ─────────────────────────────────────────────────────────────
   document.getElementById('scraper-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     e.stopPropagation();
@@ -147,8 +214,11 @@
 
     setLoading(true);
     hideStatus();
+    stopPolling();
+    document.getElementById('live-panel').classList.add('hidden');
 
     try {
+      var since = new Date().toISOString();
       var body = { max_results: max_results, test_mode: String(test_mode) };
       if (currentTab === 'keywords') { body.keywords = keywords; if (city) body.location = city; }
       if (currentTab === 'maps')     { body.maps_url = maps_url; }
@@ -164,12 +234,12 @@
       var data = await res.json();
 
       if (data.ok) {
-        showStatus('Scraping started! Results will appear in the <a href="/clients" class="underline font-medium">Clients page</a> within 1–3 minutes.', 'success');
         document.getElementById('keywords').value = '';
         document.getElementById('maps_url').value = '';
         document.getElementById('max_results').value = '50';
         document.getElementById('city').value = '';
         document.getElementById('category_tag').value = '';
+        startPolling(city, category_tag, since);
       } else {
         showStatus('Error: ' + (data.error || 'Unknown error'), 'error');
       }
@@ -200,8 +270,7 @@
   }
 
   function hideStatus() {
-    var el = document.getElementById('status-msg');
-    el.className = 'hidden';
+    document.getElementById('status-msg').className = 'hidden';
   }
 }());
 </script>

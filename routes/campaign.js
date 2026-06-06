@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth');
+const airtableService = require('../services/airtableService');
 
 const OUTBOUND_API_URL      = process.env.OUTBOUND_API_URL      || 'https://sevitech.site/api/outbound/trigger';
 const OUTBOUND_API_TEST_URL = process.env.OUTBOUND_API_TEST_URL || '';
@@ -31,6 +32,12 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       message:  message.trim()
     };
 
+    // Snapshot how many New leads exist before triggering — used for live progress tracking
+    let baseline = null;
+    try {
+      baseline = await airtableService.countLeadsByStatus(payload.city, payload.category, 'New');
+    } catch (_) { /* non-fatal — polling still works without baseline */ }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -46,10 +53,20 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       return res.status(response.status).json({ ok: false, error: `API returned ${response.status}${text ? ': ' + text : ''}` });
     }
 
-    res.json({ ok: true, limit: payload.limit, category: payload.category });
+    res.json({ ok: true, limit: payload.limit, category: payload.category, city: payload.city, baseline });
   } catch (error) {
     console.error('Campaign API error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to reach API' });
+  }
+});
+
+router.get('/poll', ensureAuthenticated, async (req, res) => {
+  try {
+    const { city, category } = req.query;
+    const count = await airtableService.countLeadsByStatus(city || '', category || '', 'New');
+    res.json({ ok: true, new_count: count });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
   }
 });
 

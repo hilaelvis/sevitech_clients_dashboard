@@ -195,6 +195,32 @@ class AirtableService {
     }
   }
 
+  // Count records created after `since` (ISO string), optionally filtered by city/category
+  async countClientsSince(city, category, since) {
+    const s = (v) => String(v).replace(/["\\]/g, '');
+    const conditions = [`IS_AFTER(CREATED_TIME(), DATETIME_PARSE("${s(since)}"))`];
+    if (city)     conditions.push(`LOWER({City}) = LOWER("${s(city)}")`);
+    if (category) conditions.push(`LOWER({category}) = LOWER("${s(category)}")`);
+    const formula = conditions.length === 1 ? conditions[0] : `AND(${conditions.join(',')})`;
+    let count = 0;
+    await base(TABLES.CLIENTS).select({ filterByFormula: formula, fields: ['business_name'] })
+      .eachPage((records, next) => { count += records.length; next(); });
+    return count;
+  }
+
+  // Count records with a given Status value, optionally filtered by city/category
+  async countLeadsByStatus(city, category, statusValue) {
+    const s = (v) => String(v).replace(/["\\]/g, '');
+    const conditions = [`{Status} = "${s(statusValue)}"`];
+    if (city)     conditions.push(`LOWER({City}) = LOWER("${s(city)}")`);
+    if (category) conditions.push(`LOWER({category}) = LOWER("${s(category)}")`);
+    const formula = conditions.length === 1 ? conditions[0] : `AND(${conditions.join(',')})`;
+    let count = 0;
+    await base(TABLES.CLIENTS).select({ filterByFormula: formula, fields: ['business_name'] })
+      .eachPage((records, next) => { count += records.length; next(); });
+    return count;
+  }
+
   // Update client status
   async updateClientStatus(id, status) {
     try {
