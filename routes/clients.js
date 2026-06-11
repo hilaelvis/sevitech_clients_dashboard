@@ -12,6 +12,28 @@ const {
   getPlatformIcon
 } = require('../utils/helpers');
 
+const airtableTimeout = (promise) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('AIRTABLE_TIMEOUT')), 8000)
+    )
+  ]);
+
+const airtableError = (err, res) => {
+  const isBilling = err.message && (
+    err.message.includes('BILLING_LIMIT') ||
+    err.message.includes('AIRTABLE_TIMEOUT')
+  );
+  res.status(503).render('error', {
+    title: 'Airtable Unavailable',
+    message: isBilling
+      ? 'Airtable API limit reached for this month. Check your Airtable workspace billing to upgrade or wait for the monthly reset.'
+      : 'Could not reach Airtable. Please try again in a moment.',
+    error: err
+  });
+};
+
 // Export clients to CSV (must be before /:id route)
 router.get('/export/csv', ensureAuthenticated, async (req, res, next) => {
   try {
@@ -37,7 +59,7 @@ router.get('/', ensureAuthenticated, async (req, res, next) => {
     if (category) filters.category = category;
     if (date_range) filters.date_range = date_range;
 
-    const clients = await airtableService.getAllClients(filters);
+    const clients = await airtableTimeout(airtableService.getAllClients(filters));
     const paginatedClients = paginate(clients, parseInt(page), 20);
 
     res.render('clients', {
@@ -56,6 +78,9 @@ router.get('/', ensureAuthenticated, async (req, res, next) => {
       getStatusColor
     });
   } catch (error) {
+    if (error.message === 'AIRTABLE_TIMEOUT' || error.statusCode === 429) {
+      return airtableError(error, res);
+    }
     next(error);
   }
 });
