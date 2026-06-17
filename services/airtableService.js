@@ -253,11 +253,20 @@ class AirtableService {
     }
   }
 
+  // Fetch clients + messages in one shot for the dashboard (avoids triple-fetch)
+  async getDashboardData() {
+    const [clients, messages] = await Promise.all([
+      this.getAllClients(),
+      this.getAllMessages()
+    ]);
+    return { clients, messages };
+  }
+
   // Get dashboard statistics
-  async getDashboardStats() {
+  async getDashboardStats(clients = null, messages = null) {
     try {
-      const clients = await this.getAllClients();
-      const messages = await this.getAllMessages();
+      if (!clients) clients = await this.getAllClients();
+      if (!messages) messages = await this.getAllMessages();
 
       const today = moment().startOf('day');
 
@@ -304,10 +313,10 @@ class AirtableService {
   }
 
   // Get analytics data
-  async getAnalytics(dateRange = 30) {
+  async getAnalytics(dateRange = 30, clients = null, messages = null) {
     try {
-      const clients = await this.getAllClients();
-      const messages = await this.getAllMessages();
+      if (!clients) clients = await this.getAllClients();
+      if (!messages) messages = await this.getAllMessages();
 
       const startDate = moment().subtract(dateRange, 'days').startOf('day');
 
@@ -352,10 +361,10 @@ class AirtableService {
   }
 
   // Get recent activity
-  async getRecentActivity(limit = 10) {
+  async getRecentActivity(limit = 10, clients = null, messages = null) {
     try {
-      const messages = await this.getAllMessages();
-      const clients = await this.getAllClients();
+      if (!messages) messages = await this.getAllMessages();
+      if (!clients) clients = await this.getAllClients();
 
       const conversationMap = new Map();
 
