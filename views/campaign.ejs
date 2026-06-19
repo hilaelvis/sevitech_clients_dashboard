@@ -149,7 +149,7 @@
       var sent = poll.baseline !== null ? Math.max(0, poll.baseline - d.new_count) : null;
       if (sent === poll.lastSent) { poll.stableRuns++; } else { poll.stableRuns = 0; poll.lastSent = sent; }
 
-      var done = (sent !== null && sent >= poll.limit) || poll.stableRuns >= 4 || poll.tick >= 40;
+      var done = (sent !== null && sent >= poll.limit) || poll.stableRuns >= 20 || poll.tick >= 400;
       setLiveStatus(sent, done);
       if (done) stopPolling();
     } catch (_) { /* ignore */ }
