@@ -32,12 +32,6 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       message:  message.trim()
     };
 
-    // Snapshot how many New leads exist in n8n's base before triggering
-    let baseline = null;
-    try {
-      baseline = await countN8nRecords(payload.city, payload.category, 'New');
-    } catch (_) { /* non-fatal */ }
-
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -52,6 +46,12 @@ router.post('/run', ensureAuthenticated, async (req, res) => {
       const text = await response.text().catch(() => '');
       return res.status(response.status).json({ ok: false, error: `API returned ${response.status}${text ? ': ' + text : ''}` });
     }
+
+    // Snapshot New-lead count after confirming webhook fired (non-blocking on Vercel timeout)
+    let baseline = null;
+    try {
+      baseline = await countN8nRecords(payload.city, payload.category, 'New');
+    } catch (_) { /* non-fatal */ }
 
     res.json({ ok: true, limit: payload.limit, category: payload.category, city: payload.city, baseline });
   } catch (error) {
